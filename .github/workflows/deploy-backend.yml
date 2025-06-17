@@ -23,11 +23,16 @@ jobs:
         run: |
           docker save storehouse-api:latest | gzip > storehouse-api.tar.gz
           echo "Docker image saved as storehouse-api.tar.gz"
-          echo "Moving to upload image step with SCP"
-          echo "User SSH Key: ${{ secrets.OCI_VM_SSH_USER }}"
-          echo "Host: ${{ secrets.OCI_VM_HOST }}"
-          echo "Target Path: /home/${{ secrets.OCI_VM_SSH_USER }}"
-          echo "SSH Key: ${{ secrets.OCI_VM_SSH_KEY }}"
+
+      - name: Deploy via SSH Test
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.OCI_VM_HOST }}
+          username: ${{ secrets.OCI_VM_SSH_USER }}
+          key: ${{ secrets.OCI_VM_SSH_KEY }}
+          script: |
+            echo "Conectado com sucesso via chave!"
+            ls -la
 
       - name: Upload image to VM
         uses: appleboy/scp-action@v0.1.3
