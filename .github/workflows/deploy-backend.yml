@@ -28,7 +28,7 @@ jobs:
         run: |
           echo "${{ secrets.OCI_VM_SSH_KEY_BASE64 }}" | base64 -d > key.pem
           chmod 600 key.pem
-          ssh -i key.pem ${{ secrets.OCI_VM_SSH_USER }}@${{ secrets.OCI_VM_HOST }} echo ok
+          ssh -i key.pem -o StrictHostKeyChecking=no ${{ secrets.OCI_VM_SSH_USER }}@${{ secrets.OCI_VM_HOST }} echo ok
 
       - name: Upload image to VM
         uses: appleboy/scp-action@v0.1.3
