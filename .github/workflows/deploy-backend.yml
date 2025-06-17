@@ -3,6 +3,7 @@ name: Deploy Backend to Oracle VM
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:  # Para permitir execução manual
 
 jobs:
   deploy:
