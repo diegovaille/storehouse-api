@@ -113,7 +113,8 @@ class ProdutoService(
             val novoEstado = ProdutoEstado(
                 produto = produto,
                 estoque = dto.estoque,
-                preco = dto.preco
+                preco = dto.preco,
+                precoCusto = dto.precoCusto
             )
             produtoEstadoRepository.save(novoEstado)
             produto.estadoAtual = novoEstado
@@ -178,7 +179,8 @@ class ProdutoService(
                 val novoEstado = ProdutoEstado(
                     produto = produto,
                     estoque = novoEstoque,
-                    preco = it.preco
+                    preco = it.preco,
+                    precoCusto = it.precoCusto
                 )
                 produtoEstadoRepository.save(novoEstado)
                 produto.estadoAtual = novoEstado

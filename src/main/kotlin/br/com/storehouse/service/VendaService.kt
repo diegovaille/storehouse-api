@@ -17,6 +17,7 @@ import br.com.storehouse.exceptions.EstadoInvalidoException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
 
@@ -42,7 +43,7 @@ class VendaService(
 
         val venda = Venda(
             vendedor = usuario,
-            valorTotal = 0.0,
+            valorTotal = BigDecimal.ZERO,
             filial = filial
         )
 
@@ -64,7 +65,8 @@ class VendaService(
                 produto = produto,
                 preco = estadoAtual.preco,
                 estoque = estadoAtual.estoque - item.quantidade,
-                dataInicio = LocalDateTime.now()
+                dataInicio = LocalDateTime.now(),
+                precoCusto = estadoAtual.precoCusto // Preserva o custo do estado atual
             )
 
             produto.estadoAtual = novoEstado // Atualiza referência para o novo estado
@@ -100,8 +102,10 @@ class VendaService(
         return vendaRepo.save(venda).toResponse()
     }
 
-    private fun calcularTotal(itens: List<VendaItem>): Double =
-        itens.sumOf { it.quantidade * it.precoUnitario }
+    private fun calcularTotal(itens: List<VendaItem>): BigDecimal =
+        itens.fold(BigDecimal.ZERO) { acc, item ->
+            acc + item.precoUnitario.multiply(BigDecimal.valueOf(item.quantidade.toLong()))
+        }
 
     fun listarVendas(): List<VendaResponse> = vendaRepo.findAll().map { it.toResponse() }
 
@@ -118,7 +122,7 @@ class VendaService(
 
 fun Venda.toResponse(): VendaResponse = VendaResponse(
     id = this.id,
-    valorTotal = this.valorTotal ?: 0.0,
+    valorTotal = this.valorTotal ?: BigDecimal.ZERO,
     data = this.data.toString(),
     vendedorNome = this.vendedor.username ?: "Desconhecido",
     vendedorEmail = this.vendedor.email,

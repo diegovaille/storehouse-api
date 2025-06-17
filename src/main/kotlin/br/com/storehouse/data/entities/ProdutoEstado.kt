@@ -1,6 +1,7 @@
 package br.com.storehouse.data.entities
 
 import jakarta.persistence.*
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
 
@@ -14,13 +15,13 @@ class ProdutoEstado(
     var produto: Produto,
 
     @Column(nullable = false)
-    var estoque: Int = 0,
+    var estoque: Int,
 
     @Column(nullable = false, precision = 10, scale = 2)
-    var preco: Double = 0.0,
+    var preco: BigDecimal,
 
     @Column(name = "preco_custo", nullable = false, precision = 10, scale = 2)
-    var precoCusto: Double = 0.0,
+    var precoCusto: BigDecimal,
 
     @Column(name = "data_inicio", nullable = false)
     var dataInicio: LocalDateTime = LocalDateTime.now(),

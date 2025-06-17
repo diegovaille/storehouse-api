@@ -1,6 +1,7 @@
 package br.com.storehouse.data.entities
 
 import jakarta.persistence.*
+import java.math.BigDecimal
 import java.util.*
 
 @Entity
@@ -19,5 +20,5 @@ class VendaItem(
     var quantidade: Int = 0,
 
     @Column(name = "preco_unitario", nullable = false, precision = 10, scale = 2)
-    var precoUnitario: Double = 0.0
+    var precoUnitario: BigDecimal
 )

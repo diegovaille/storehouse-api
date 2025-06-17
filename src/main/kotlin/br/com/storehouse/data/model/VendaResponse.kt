@@ -1,10 +1,11 @@
 package br.com.storehouse.data.model
 
+import java.math.BigDecimal
 import java.util.UUID
 
 data class VendaResponse(
     val id: UUID,
-    val valorTotal: Double,
+    val valorTotal: BigDecimal,
     val data: String,
     val vendedorNome: String,
     val vendedorEmail: String,
@@ -14,5 +15,5 @@ data class VendaResponse(
 data class ItemVendaResponse(
     val produtoNome: String,
     val quantidade: Int,
-    val precoUnitario: Double
+    val precoUnitario: BigDecimal
 )

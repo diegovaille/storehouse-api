@@ -1,6 +1,7 @@
 package br.com.storehouse.data.entities
 
 import jakarta.persistence.*
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
 
@@ -21,7 +22,7 @@ class Venda(
     var filial: Filial,
 
     @Column(name = "valor_total", nullable = false, precision = 10, scale = 2)
-    var valorTotal: Double,
+    var valorTotal: BigDecimal,
 
     @Column(nullable = false)
     var cancelada: Boolean = false,
