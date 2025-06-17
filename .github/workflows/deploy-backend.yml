@@ -24,7 +24,7 @@ jobs:
           docker save storehouse-api:latest | gzip > storehouse-api.tar.gz
           echo "Docker image saved as storehouse-api.tar.gz"
 
-      - name: Save Key
+      - name: Save Key to Workspace
         run: |
           echo "${{ secrets.OCI_VM_SSH_KEY }}" | base64 -d > ${{ github.workspace }}/key.pem
           chmod 600 key.pem
@@ -92,7 +92,15 @@ jobs:
             -e S3_ACCESS_KEY='${{ secrets.S3_ACCESS_KEY }}' \
             -e S3_SECRET_KEY='${{ secrets.S3_SECRET_KEY }}' \
             -e POSTGRES_HOST=150.230.75.129 \
-            -e POSTGRES_USER='${{ secrets.POSTGRES_USER }}' \
+            -e POSTGRES_USER='${{ vars.POSTGRES_USER }}' \
             -e POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
+            -e POSTGRES_HOST='${{ vars.POSTGRES_HOST }}' \
             -p 8080:8080 \
             storehouse-api:latest
+            
+            rm -rf storehouse-api.tar.gz
+
+      - name: Remove Key from Workspace
+        run: |
+          rm -f ${{ github.workspace }}/key.pem
+          echo "SSH key removed from workspace"
