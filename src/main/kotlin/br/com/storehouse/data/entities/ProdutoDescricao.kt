@@ -16,7 +16,6 @@ class ProdutoDescricao(
     var produto: br.com.storehouse.data.entities.Produto,
 
     @Column(name = "descricao_campos",columnDefinition = "jsonb")
-//    @Convert(converter = JsonMapConverter::class)
     @JdbcTypeCode(SqlTypes.JSON)
     var descricaoCampos: Map<String, Any> = emptyMap()
 

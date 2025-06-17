@@ -16,10 +16,10 @@ class ProdutoEstado(
     @Column(nullable = false)
     var estoque: Int = 0,
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 10, scale = 2)
     var preco: Double = 0.0,
 
-    @Column(name = "preco_custo", nullable = false)
+    @Column(name = "preco_custo", nullable = false, precision = 10, scale = 2)
     var precoCusto: Double = 0.0,
 
     @Column(name = "data_inicio", nullable = false)

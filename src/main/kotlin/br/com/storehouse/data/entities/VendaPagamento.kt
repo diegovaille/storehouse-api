@@ -11,9 +11,11 @@ class VendaPagamento(
 
     @ManyToOne
     @JoinColumn(name = "venda_id")
-    var venda: br.com.storehouse.data.entities.Venda,
+    var venda: Venda,
 
     @Enumerated(EnumType.STRING)
     var tipo: TipoPagamento = TipoPagamento.PIX, // DINHEIRO, CARTAO, PIX, etc.
+
+    @Column(nullable = false, precision = 10, scale = 2)
     var valor: Double = 0.0
 )

@@ -20,7 +20,7 @@ class Produto(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_id", nullable = false)
-    var tipo: br.com.storehouse.data.entities.TipoProduto,
+    var tipo: TipoProduto,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "filial_id", nullable = false)
@@ -37,5 +37,5 @@ class Produto(
     var estadoAtual: ProdutoEstado? = null,
 
     @OneToOne(mappedBy = "produto", fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
-    var descricao: br.com.storehouse.data.entities.ProdutoDescricao? = null
+    var descricao: ProdutoDescricao? = null
 )

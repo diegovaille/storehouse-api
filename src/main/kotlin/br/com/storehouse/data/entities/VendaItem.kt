@@ -17,5 +17,7 @@ class VendaItem(
     var produto: Produto,
 
     var quantidade: Int = 0,
+
+    @Column(name = "preco_unitario", nullable = false, precision = 10, scale = 2)
     var precoUnitario: Double = 0.0
 )

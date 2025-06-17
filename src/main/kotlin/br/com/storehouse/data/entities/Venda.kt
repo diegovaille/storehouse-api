@@ -20,7 +20,7 @@ class Venda(
     @JoinColumn(name = "filial_id", nullable = false)
     var filial: Filial,
 
-    @Column(name = "valor_total", nullable = false)
+    @Column(name = "valor_total", nullable = false, precision = 10, scale = 2)
     var valorTotal: Double,
 
     @Column(nullable = false)
@@ -33,5 +33,5 @@ class Venda(
     var itens: List<VendaItem> = mutableListOf(),
 
     @OneToMany(mappedBy = "venda", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var pagamentos: List<br.com.storehouse.data.entities.VendaPagamento> = mutableListOf()
+    var pagamentos: List<VendaPagamento> = mutableListOf()
 )

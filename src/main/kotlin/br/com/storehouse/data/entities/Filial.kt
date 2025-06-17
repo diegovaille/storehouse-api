@@ -13,6 +13,8 @@ class Filial(
     @Column(name = "razao_social")
     var razaoSocial: String? = null,
     var endereco: String? = null,
+    var municipio: String = "",
+    var estado: String = "", // UF
     @Column(name = "logo_url")
     var logoUrl: String? = null,
     var ativo: Boolean = true,

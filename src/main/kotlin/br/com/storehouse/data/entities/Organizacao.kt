@@ -13,6 +13,8 @@ class Organizacao(
     @Column(name = "razao_social")
     var razaoSocial: String? = null,
     var endereco: String? = null,
+    var municipio: String = "",
+    var estado: String = "", // UF
     var tipo: String = "", // loja, armazem, etc.
     @Column(name = "logo_url")
     var logoUrl: String? = null,
