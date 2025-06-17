@@ -1,0 +1,62 @@
+app:
+  base-url: https://api.primeira.app.br  # ou IP público da VM se ainda não tiver domínio
+
+spring:
+  datasource:
+    url: jdbc:postgresql://150.230.75.129:5432/storehousedb
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - email
+              - profile
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
+            user-name-attribute: email
+
+isbndb:
+  api-key: ${ISBNDB_API_KEY}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000
+
+server:
+  forward-headers-strategy: framework
+
+project:
+  s3:
+    default-bucket: storehouse-images
+    buckets:
+      - name: storehouse-images
+        region: sa-saopaulo-1
+        endpoint: https://objectstorage.sa-saopaulo-1.oraclecloud.com
+        access-key: ${S3_ACCESS_KEY}
+        secret-key: ${S3_SECRET_KEY}
+        namespace: grz9zu8hdz2q

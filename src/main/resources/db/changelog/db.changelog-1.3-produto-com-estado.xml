@@ -1,0 +1,89 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="produto-com-estado" author="dev">
+        <createTable tableName="produto">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="codigo_barras" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nome" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tipo_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="filial_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="estado_atual_id" type="UUID"/>
+            <column name="imagem_url" type="VARCHAR(255)"/>
+            <column name="excluido" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_criacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <createTable tableName="produto_estado">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="produto_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="estoque" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preco" type="DECIMAL(10,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preco_custo" type="DECIMAL(10,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_inicio" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="data_fim" type="TIMESTAMP"/>
+        </createTable>
+
+        <createIndex indexName="idx_produto_codigo_filial" tableName="produto" unique="true">
+            <column name="codigo_barras"/>
+            <column name="filial_id"/>
+        </createIndex>
+
+        <createIndex indexName="idx_produto_nome_filial" tableName="produto" unique="true">
+            <column name="nome"/>
+            <column name="filial_id"/>
+        </createIndex>
+
+        <addForeignKeyConstraint
+                baseTableName="produto"
+                baseColumnNames="tipo_id"
+                referencedTableName="tipo_produto"
+                referencedColumnNames="id"
+                constraintName="fk_produto_tipo"/>
+
+        <addForeignKeyConstraint
+                baseTableName="produto"
+                baseColumnNames="filial_id"
+                referencedTableName="filial"
+                referencedColumnNames="id"
+                constraintName="fk_produto_filial"/>
+
+        <addForeignKeyConstraint
+                baseTableName="produto"
+                baseColumnNames="estado_atual_id"
+                referencedTableName="produto_estado"
+                referencedColumnNames="id"
+                constraintName="fk_produto_estado"/>
+
+        <addForeignKeyConstraint
+                baseTableName="produto_estado"
+                baseColumnNames="produto_id"
+                referencedTableName="produto"
+                referencedColumnNames="id"
+                constraintName="fk_estado_produto"/>
+    </changeSet>
+</databaseChangeLog>

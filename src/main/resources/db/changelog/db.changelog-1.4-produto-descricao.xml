@@ -1,0 +1,21 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="produto-descricao" author="dev">
+        <createTable tableName="produto_descricao">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="produto_id" type="UUID"/>
+            <column name="descricao_campos" type="JSONB"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="produto_descricao"
+                                 baseColumnNames="produto_id"
+                                 referencedTableName="produto"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_desc_produto"/>
+    </changeSet>
+</databaseChangeLog>

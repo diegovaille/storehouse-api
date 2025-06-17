@@ -1,0 +1,51 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="usuario" author="dev">
+        <createTable tableName="usuario">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="username" type="VARCHAR(50)">
+                <constraints unique="true" nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(100)">
+                <constraints unique="true" nullable="false"/>
+            </column>
+            <column name="password" type="VARCHAR(255)"/>
+        </createTable>
+
+        <createTable tableName="perfil">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="tipo" type="VARCHAR(20)"/>
+        </createTable>
+
+        <createTable tableName="organizacao_usuario">
+            <column name="usuario_id" type="UUID"/>
+            <column name="organizacao_id" type="UUID"/>
+            <column name="perfil_id" type="UUID"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="organizacao_usuario"
+                                 baseColumnNames="usuario_id"
+                                 referencedTableName="usuario"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_eu_usuario"/>
+
+        <addForeignKeyConstraint baseTableName="organizacao_usuario"
+                                 baseColumnNames="organizacao_id"
+                                 referencedTableName="organizacao"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_eu_organizacao"/>
+
+        <addForeignKeyConstraint baseTableName="organizacao_usuario"
+                                 baseColumnNames="perfil_id"
+                                 referencedTableName="perfil"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_eu_perfil"/>
+    </changeSet>
+</databaseChangeLog>

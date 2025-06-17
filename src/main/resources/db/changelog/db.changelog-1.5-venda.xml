@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- Tabela de venda -->
+    <changeSet id="venda" author="dev">
+        <createTable tableName="venda">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="data" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="vendedor_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="filial_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valor_total" type="DECIMAL(10,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cancelada" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cliente" type="VARCHAR(50)" />
+        </createTable>
+
+        <createTable tableName="venda_item">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="venda_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="produto_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantidade" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preco_unitario" type="DECIMAL(10,2)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="venda_pagamento">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="venda_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tipo" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valor" type="DECIMAL(10,2)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="venda"
+                baseColumnNames="vendedor_id"
+                constraintName="fk_venda_vendedor"
+                referencedTableName="usuario"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                baseTableName="venda"
+                baseColumnNames="filial_id"
+                constraintName="fk_venda_filial"
+                referencedTableName="filial"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                baseTableName="venda_item"
+                baseColumnNames="venda_id"
+                constraintName="fk_vendaitem_venda"
+                referencedTableName="venda"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                baseTableName="venda_item"
+                baseColumnNames="produto_id"
+                constraintName="fk_vendaitem_produto"
+                referencedTableName="produto"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                baseTableName="venda_pagamento"
+                baseColumnNames="venda_id"
+                constraintName="fk_venda_pagamento_venda"
+                referencedTableName="venda"
+                referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

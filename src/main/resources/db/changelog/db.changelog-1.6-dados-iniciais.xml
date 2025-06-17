@@ -1,0 +1,125 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="insert-dados-iniciais" author="dev">
+
+        <!-- 👤 Usuário Diego -->
+        <insert tableName="usuario">
+            <column name="id" value="b1f45752-6a64-4c6c-8c5e-75a1a5de47af"/>
+            <column name="username" value="diegovaille"/>
+            <column name="email" value="diegovaille@gmail.com"/>
+            <column name="password" value="$2a$10$uli74sJeORy7w.Ce69mt8eIeHwxA32QCkQ8SY4SzVTiu6cia55v1O"/>
+        </insert>
+
+        <insert tableName="usuario">
+            <column name="id" value="46c085fe-c1c2-4a3a-b9a4-527fe1220608"/>
+            <column name="username" value="admin"/>
+            <column name="password" value="$2a$10$sqdf6YwslM152OUgXbHZl.7.TPguCqRsM2k1.DVhuaHd.j1mgIVfW"/>
+            <column name="email" value="admin@primeira.app.br"/>
+        </insert>
+
+        <insert tableName="usuario">
+            <column name="id" value="80e37bc1-7849-4489-9784-dcb6c1f507e1"/>
+            <column name="username" value="vendedor"/>
+            <column name="password" value="$2a$10$qIyCKygkH.hBGfgzYhqs0eLB801Ks4j7M396uJ3lM4YQF8f0AlEEG"/>
+            <column name="email" value="vendedor@primeira.app.br"/>
+        </insert>
+
+        <!-- 👥 Perfil ADMIN -->
+        <insert tableName="perfil">
+            <column name="id" value="cfa045aa-6f0b-456e-90cc-b9bc4c03b78d"/>
+            <column name="tipo" value="ADMIN"/>
+        </insert>
+
+        <!-- 👥 Perfil VENDEDOR -->
+        <insert tableName="perfil">
+            <column name="id" value="4d3a943c-b1db-4cba-89bf-2ba80fe337b5"/>
+            <column name="tipo" value="VENDEDOR"/>
+        </insert>
+
+        <!-- 🏢 Organização Primeira Igreja Batista -->
+        <insert tableName="organizacao">
+            <column name="id" value="20587698-1b67-4cbb-8a08-d7e9fe56a77d"/>
+            <column name="nome" value="Primeira Igreja Batista"/>
+            <column name="cnpj" value="52579836000196"/>
+            <column name="razao_social" value="Primeira Igreja Batista em Mogi das Cruzes"/>
+            <column name="endereco" value="Rua Barao de Jaceguai, 1019, Centro"/>
+            <column name="municipio" value="Mogi das Cruzes"/>
+            <column name="estado" value="SP"/>
+            <column name="tipo" value="IGREJA"/>
+        </insert>
+
+        <!-- 🏬 Filial Primeira Store -->
+        <insert tableName="filial">
+            <column name="id" value="e741e0b4-02f9-4e6e-b3c3-4318d36477b3"/>
+            <column name="organizacao_id" value="20587698-1b67-4cbb-8a08-d7e9fe56a77d"/>
+            <column name="nome" value="Primeira Store"/>
+            <column name="cnpj" value="52579836000196"/>
+            <column name="razao_social" value="Primeira Store - Loja Oficial"/>
+            <column name="municipio" value="Mogi das Cruzes"/>
+            <column name="estado" value="SP"/>
+            <column name="ativo" valueBoolean="true"/>
+            <column name="logo_url" value="https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grz9zu8hdz2q/b/storehouse-images/o/20587698-1b67-4cbb-8a08-d7e9fe56a77d%2Fe741e0b4-02f9-4e6e-b3c3-4318d36477b3%2Flogo.png"/>
+        </insert>
+
+        <!-- 🔗 Vínculo -->
+        <insert tableName="organizacao_usuario">
+            <column name="usuario_id" value="b1f45752-6a64-4c6c-8c5e-75a1a5de47af"/>
+            <column name="organizacao_id" value="20587698-1b67-4cbb-8a08-d7e9fe56a77d"/>
+            <column name="perfil_id" value="cfa045aa-6f0b-456e-90cc-b9bc4c03b78d"/>
+        </insert>
+
+        <!-- 🔗 Vínculo Admin -->
+        <insert tableName="organizacao_usuario">
+            <column name="usuario_id" value="46c085fe-c1c2-4a3a-b9a4-527fe1220608"/>
+            <column name="organizacao_id" value="20587698-1b67-4cbb-8a08-d7e9fe56a77d"/>
+            <column name="perfil_id" value="cfa045aa-6f0b-456e-90cc-b9bc4c03b78d"/>
+        </insert>
+
+        <!-- 🔗 Vínculo Vendedor -->
+        <insert tableName="organizacao_usuario">
+            <column name="usuario_id" value="80e37bc1-7849-4489-9784-dcb6c1f507e1"/>
+            <column name="organizacao_id" value="20587698-1b67-4cbb-8a08-d7e9fe56a77d"/>
+            <column name="perfil_id" value="cfa045aa-6f0b-456e-90cc-b9bc4c03b78d"/>
+        </insert>
+
+        <!-- 📚 TipoProduto: Livro -->
+        <insert tableName="tipo_produto">
+            <column name="id" value="1b4b2f66-6b55-4ac8-90b0-027fb7d9c1fe"/>
+            <column name="nome" value="Livro"/>
+            <column name="campos" value='{"autor":"String","editora":"String","ano":"Int"}'/>
+        </insert>
+
+        <!-- TipoProduto: Camiseta -->
+        <insert tableName="tipo_produto">
+            <column name="id" value="6f05097e-14a4-4730-9c6d-e61428375306"/>
+            <column name="nome" value="Camiseta"/>
+            <column name="campos" value='{"tamanho":"String","cor":"String","tecido":"String","estampa":"String"}'/>
+        </insert>
+
+        <!-- TipoProduto: Caneca -->
+        <insert tableName="tipo_produto">
+            <column name="id" value="2d286f72-29a6-492e-acf0-304eee62e13f"/>
+            <column name="nome" value="Caneca"/>
+            <column name="campos" value='{"capacidade_ml":"Int","material":"String","cor":"String","estampa":"String"}'/>
+        </insert>
+
+        <!-- TipoProduto: Quadro -->
+        <insert tableName="tipo_produto">
+            <column name="id" value="d6a1c0c2-5e3f-4c8e-a6f1-40bd6a1e9991"/>
+            <column name="nome" value="Quadro"/>
+            <column name="campos" value='{"largura_cm":"Int","altura_cm":"Int","material":"String","moldura":"Boolean"}'/>
+        </insert>
+
+        <!-- TipoProduto: Pulseira -->
+        <insert tableName="tipo_produto">
+            <column name="id" value="37a776b6-80d8-4341-9fff-76664bdbc0be"/>
+            <column name="nome" value="Pulseira"/>
+            <column name="campos" value='{"material":"String","tamanho":"String"}'/>
+        </insert>
+
+    </changeSet>
+</databaseChangeLog>

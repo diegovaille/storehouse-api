@@ -1,0 +1,27 @@
+package br.com.storehouse.data.model
+
+import br.com.storehouse.data.entities.Produto
+
+data class ProdutoResponse (
+    val codigoBarras: String,
+    val nome: String,
+    val preco: Double,
+    val estoque: Int,
+    val tipo: String,
+    val camposDescricao: Map<String, Any?> = emptyMap(),
+    val imagemUrl: String? = null
+)
+
+fun Produto.toResponse(): ProdutoResponse {
+    val campos = this.descricao?.descricaoCampos ?: emptyMap()
+
+    return ProdutoResponse(
+        codigoBarras = this.codigoBarras,
+        nome = this.nome,
+        preco = this.estadoAtual?.preco ?: 0.0,
+        estoque = this.estadoAtual?.estoque ?: 0,
+        tipo = this.tipo.nome,
+        camposDescricao = campos,
+        imagemUrl = this.imagemUrl
+    )
+}

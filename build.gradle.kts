@@ -1,0 +1,45 @@
+plugins {
+    kotlin("jvm") version "2.0.20"
+    kotlin("plugin.spring") version "2.0.20"
+    kotlin("plugin.jpa") version "2.0.20"
+    id("org.springframework.boot") version "3.2.5"
+    id("io.spring.dependency-management") version "1.1.5"
+}
+
+group = "br.com.storehouse"
+version = "1.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+}
+val awsSdkVersion = "2.25.12"
+
+dependencies {
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.postgresql:postgresql:42.7.3")
+    implementation("org.liquibase:liquibase-core")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+    implementation("software.amazon.awssdk:s3:$awsSdkVersion")
+    implementation("software.amazon.awssdk:http-client-spi:$awsSdkVersion")
+    implementation("software.amazon.awssdk:apache-client:$awsSdkVersion")
+    runtimeOnly("org.springframework.boot:spring-boot-devtools")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+noArg {
+    annotation("jakarta.persistence.Entity")
+}
