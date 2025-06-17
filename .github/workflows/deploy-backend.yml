@@ -28,14 +28,13 @@ jobs:
         run: |
           echo "${{ secrets.OCI_VM_SSH_KEY }}" | base64 -d > key.pem
           chmod 600 key.pem
-          ssh -i key.pem -o StrictHostKeyChecking=no ${{ vars.OCI_VM_SSH_USER }}@${{ vars.OCI_VM_HOST }} echo ok
 
       - name: Upload image to VM
         uses: appleboy/scp-action@v0.1.3
         with:
           host: ${{ vars.OCI_VM_HOST }}
           username: ${{ vars.OCI_VM_SSH_USER }}
-          key: ${{ secrets.OCI_VM_SSH_KEY }}
+          key: key.pem
           source: storehouse-api.tar.gz
           target: /home/${{ vars.OCI_VM_SSH_USER }}
 
@@ -44,7 +43,7 @@ jobs:
         with:
           host: ${{ vars.OCI_VM_HOST }}
           username: ${{ vars.OCI_VM_SSH_USER }}
-          key: ${{ secrets.OCI_VM_SSH_KEY }}
+          key: key.pem
           script: |
             set -e
             cd /home/${{ vars.OCI_VM_SSH_USER }}
