@@ -3,7 +3,7 @@ app:
 
 spring:
   datasource:
-    url: jdbc:postgresql://150.230.75.129:5432/storehousedb
+    url: jdbc:postgresql://168.75.92.145:5432/storehousedb
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
