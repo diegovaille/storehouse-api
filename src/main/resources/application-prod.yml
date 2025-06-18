@@ -1,5 +1,6 @@
 app:
   base-url: https://api.primeira.app.br  # ou IP público da VM se ainda não tiver domínio
+  frontend-base-url: https://store.primeira.app.br
 
 spring:
   datasource:

@@ -5,6 +5,7 @@ import br.com.storehouse.service.UsuarioService
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.Authentication
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler
@@ -16,6 +17,9 @@ class OAuth2SuccessHandler(
     private val jwtUtils: JwtUtils,
     private val usuarioService: UsuarioService
 ) : AuthenticationSuccessHandler {
+
+    @Value("\${app.frontend-base-url:}")
+    private lateinit var frontendBaseUrl: String
 
     private val logger = LoggerFactory.getLogger(OAuth2SuccessHandler::class.java)
 
@@ -39,10 +43,14 @@ class OAuth2SuccessHandler(
             ?: throw RuntimeException("Usuário não autorizado: $email")
 
         val tokenTemporario = jwtUtils.generateTempToken(email)
-        val baseUrl = getBaseUrl(request)
+        val redirectBase = if (frontendBaseUrl.isNotBlank()) {
+            frontendBaseUrl
+        } else {
+            getBaseUrl(request)
+        }
 
         val redirectUrl = buildString {
-            append("$baseUrl/organizacao.html")
+            append("$redirectBase/organizacao.html")
             append("#tempToken=$tokenTemporario")
             if (name != null) append("&name=${URLEncoder.encode(name, "UTF-8")}")
             if (picture != null) append("&picture=${URLEncoder.encode(picture, "UTF-8")}")
