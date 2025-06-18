@@ -6,6 +6,7 @@ import br.com.storehouse.api.security.filters.JwtAuthenticationFilter
 import br.com.storehouse.service.UsuarioService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.security.authentication.AuthenticationProvider
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
@@ -41,6 +42,8 @@ class SecurityConfig(
                     .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/favicon.ico").permitAll()
                     .requestMatchers("/login/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/produtos/tipos").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/produtos").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
             }
