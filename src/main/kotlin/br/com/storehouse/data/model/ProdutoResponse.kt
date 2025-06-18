@@ -7,6 +7,7 @@ data class ProdutoResponse (
     val codigoBarras: String,
     val nome: String,
     val preco: BigDecimal,
+    val precoCusto: BigDecimal,
     val estoque: Int,
     val tipo: String,
     val camposDescricao: Map<String, Any?> = emptyMap(),
@@ -23,6 +24,7 @@ fun Produto.toResponse(): ProdutoResponse {
         estoque = this.estadoAtual?.estoque ?: 0,
         tipo = this.tipo.nome,
         camposDescricao = campos,
-        imagemUrl = this.imagemUrl
+        imagemUrl = this.imagemUrl,
+        precoCusto = this.estadoAtual?.precoCusto ?: BigDecimal.ZERO
     )
 }

@@ -32,12 +32,11 @@ class SecurityConfig(
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
+            .cors { }  // 🔥 Ativa o uso do CorsConfigurationSource definido abaixo
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { auth ->
                 auth
-//                    .requestMatchers("/", "/index.html", "/produto.html", "organizacao.html", "/venda.html", "/catalogo.html",
-//                        "/login.html", "/relatorio_vendas.html", "/js/**", "/css/**", "/images/**").permitAll()
                     .requestMatchers("/api/oauth2/**").permitAll()
                     .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/favicon.ico").permitAll()
