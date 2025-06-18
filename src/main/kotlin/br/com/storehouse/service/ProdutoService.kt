@@ -8,6 +8,7 @@ import br.com.storehouse.data.entities.TipoProduto
 import br.com.storehouse.data.model.ProdutoDto
 import br.com.storehouse.data.repository.*
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
+import br.com.storehouse.exceptions.RequisicaoInvalidaException
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
@@ -136,21 +137,23 @@ class ProdutoService(
         return atualizado
     }
 
-    private fun precisaNovoEstado(estadoAtual: ProdutoEstado?, dto: br.com.storehouse.data.model.ProdutoDto): Boolean {
+    private fun precisaNovoEstado(estadoAtual: ProdutoEstado?, dto: ProdutoDto): Boolean {
         return estadoAtual == null ||
                 estadoAtual.estoque != dto.estoque ||
                 estadoAtual.preco != dto.preco
     }
 
-    private fun validarProduto(dto: br.com.storehouse.data.model.ProdutoDto, tipoProduto: br.com.storehouse.data.entities.TipoProduto) {
+    private fun validarProduto(dto: ProdutoDto, tipoProduto: TipoProduto) {
         if (tipoProduto.campos.isNullOrBlank()) return
 
         val schema: Map<String, String> = try {
             objectMapper.readValue(tipoProduto.campos, object : TypeReference<Map<String, String>>() {})
         } catch (e: Exception) {
-            throw br.com.storehouse.exceptions.RequisicaoInvalidaException("Formato inválido no campo 'campos' de TipoProduto")
+            throw RequisicaoInvalidaException("Formato inválido no campo 'campos' de TipoProduto")
         }
 
+        /**
+         * Descomente se necessário para validação de campos obrigatórios
         val descricao = dto.descricaoCampos ?: emptyMap()
 
         schema.forEach { (campo, _) ->
@@ -159,6 +162,7 @@ class ProdutoService(
                 "Campo obrigatório ausente ou vazio: $campo"
             }
         }
+        */
     }
 
     fun listarTodos(filialId: UUID): List<Produto> =
