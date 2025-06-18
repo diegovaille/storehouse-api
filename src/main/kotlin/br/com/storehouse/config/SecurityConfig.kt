@@ -77,11 +77,9 @@ class SecurityConfig(
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
-            allowedOrigins = listOf(
-                "http://localhost:8080",
-                "https://store.primeira.app.br",         // ✅ Frontend em produção
-                "https://*.ngrok-free.app"
-            )
+            addAllowedOrigin("http://localhost:8080")
+            addAllowedOrigin("https://store.primeira.app.br")
+            addAllowedOriginPattern("https://*.ngrok-free.app")  // usa pattern no lugar
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
             allowedHeaders = listOf("*")
             allowCredentials = true
