@@ -21,13 +21,13 @@ class S3ClientFactory(
     fun init() {
         props.buckets.forEach { bucket ->
             val uri = URI.create(bucket.endpoint)
-            val isLocal = uri.host == "localhost" || uri.host == "127.0.0.1"
+            val isAws = bucket.endpoint.contains("amazonaws.com")
 
             val client = S3Client.builder()
                 .region(Region.of(bucket.region))
                 .endpointOverride(uri)
                 .apply {
-                    if (isLocal) forcePathStyle(true)
+                    if (!isAws) forcePathStyle(true)
                 }
                 .credentialsProvider(
                     StaticCredentialsProvider.create(
