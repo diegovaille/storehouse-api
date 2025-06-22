@@ -80,7 +80,7 @@ class SecurityConfig(
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
             addAllowedOrigin("http://localhost:8080")
-            addAllowedOrigin("https://store.primeira.app.br")
+            addAllowedOrigin("https://primeira.app.br")
             addAllowedOriginPattern("https://*.ngrok-free.app")  // usa pattern no lugar
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
             allowedHeaders = listOf("*")
