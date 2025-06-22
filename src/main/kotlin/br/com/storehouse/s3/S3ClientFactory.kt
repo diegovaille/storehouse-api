@@ -23,18 +23,24 @@ class S3ClientFactory(
             val uri = URI.create(bucket.endpoint)
             val isAws = bucket.endpoint.contains("amazonaws.com")
 
-            val client = S3Client.builder()
+            val builder = S3Client.builder()
                 .region(Region.of(bucket.region))
                 .endpointOverride(uri)
-                .apply {
-                    if (!isAws) forcePathStyle(true)
-                }
                 .credentialsProvider(
                     StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(bucket.accessKey, bucket.secretKey)
                     )
                 )
-                .build()
+
+            if (!isAws) {
+                builder.serviceConfiguration(
+                    software.amazon.awssdk.services.s3.S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build()
+                )
+            }
+
+            val client = builder.build()
 
             clients[bucket.name] = client
             endpointMap[bucket.name] = bucket.endpoint
