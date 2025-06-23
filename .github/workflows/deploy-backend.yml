@@ -81,6 +81,11 @@ jobs:
             echo "Skipping certbot: DNS not resolved yet."
             fi
             
+            echo "Salvando chave privada OCI..."
+            mkdir -p /home/${{ vars.OCI_VM_SSH_USER }}/.oci
+            echo "${{ secrets.OCI_PRIVATE_KEY_PEM_B64 }}" | base64 -d > /home/${{ vars.OCI_VM_SSH_USER }}/.oci/oci_api_key.pem
+            chmod 600 /home/${{ vars.OCI_VM_SSH_USER }}/.oci/oci_api_key.pem
+            
             echo "Deploying backend container..."
             docker rm -f storehouse-api || true
             gunzip -c storehouse-api.tar.gz | docker load
@@ -93,10 +98,14 @@ jobs:
             -e ISBNDB_API_KEY='${{ secrets.ISBNDB_API_KEY }}' \
             -e S3_ACCESS_KEY='${{ secrets.S3_ACCESS_KEY }}' \
             -e S3_SECRET_KEY='${{ secrets.S3_SECRET_KEY }}' \
-            -e POSTGRES_HOST=150.230.75.129 \
             -e POSTGRES_USER='${{ vars.POSTGRES_USER }}' \
             -e POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
             -e POSTGRES_HOST='${{ vars.POSTGRES_HOST }}' \
+            -e OCI_USER_ID='${{ secrets.OCI_USER_ID }}' \
+            -e OCI_TENANCY_ID='${{ secrets.OCI_TENANCY_ID }}' \
+            -e OCI_FINGERPRINT='${{ secrets.OCI_FINGERPRINT }}' \
+            -e OCI_PRIVATE_KEY_PATH='/root/.oci/oci_api_key.pem' \
+            -v /home/${{ vars.OCI_VM_SSH_USER }}/.oci:/root/.oci \
             -p 8080:8080 \
             storehouse-api:latest
             

@@ -4,7 +4,7 @@ app:
 
 spring:
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:5432/storehousedb
+    url: jdbc:postgresql://${POSTGRES_HOST}/estoque
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -52,12 +52,14 @@ server:
   forward-headers-strategy: framework
 
 project:
-  s3:
+  storage:
     default-bucket: storehouse-images
     buckets:
       - name: storehouse-images
+        provider: oracle
         region: sa-saopaulo-1
-        endpoint: https://objectstorage.sa-saopaulo-1.oraclecloud.com
-        access-key: ${S3_ACCESS_KEY}
-        secret-key: ${S3_SECRET_KEY}
         namespace: grz9zu8hdz2q
+        user-id: ${OCI_USER_ID}
+        tenant-id: ${OCI_TENANCY_ID}
+        fingerprint: ${OCI_FINGERPRINT}
+        private-key: ${OCI_PRIVATE_KEY_PATH}

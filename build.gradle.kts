@@ -12,7 +12,9 @@ version = "1.0-SNAPSHOT"
 repositories {
     mavenCentral()
 }
+
 val awsSdkVersion = "2.25.12"
+val ociSdkVersion = "3.67.2"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -27,6 +29,10 @@ dependencies {
     implementation("software.amazon.awssdk:s3:$awsSdkVersion")
     implementation("software.amazon.awssdk:http-client-spi:$awsSdkVersion")
     implementation("software.amazon.awssdk:apache-client:$awsSdkVersion")
+    implementation("com.oracle.oci.sdk:oci-java-sdk-objectstorage:$ociSdkVersion")
+    implementation("com.oracle.oci.sdk:oci-java-sdk-common:$ociSdkVersion")
+    implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociSdkVersion")
+//    implementation("com.oracle.oci.sdk:oci-java-sdk-addons-resteasy-client-configurator:$ociSdkVersion")
     runtimeOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
