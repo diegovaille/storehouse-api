@@ -4,7 +4,7 @@ app:
 
 spring:
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}/estoque
+    url: jdbc:postgresql://${POSTGRES_HOST}:5432/storehousedb
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
