@@ -22,4 +22,10 @@ class GlobalExceptionHandler {
     @ExceptionHandler(EstadoInvalidoException::class)
     fun handleConflict(ex: EstadoInvalidoException): ResponseEntity<String> =
         ResponseEntity.status(HttpStatus.CONFLICT).body(ex.message)
+
+    @ExceptionHandler(Exception::class)
+    fun handleGeneric(ex: Exception): ResponseEntity<String> =
+        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+            "Erro inesperado: ${ex.message}"
+        )
 }
