@@ -111,6 +111,8 @@ class ProdutoService(
     ): Produto {
         produto.nome = dto.nome
         produto.tipo = tipoProduto
+        produto.codigoBarras = dto.codigoBarras
+
         if (imagemUrl != null) produto.imagemUrl = imagemUrl
         produto.excluido = false
 
