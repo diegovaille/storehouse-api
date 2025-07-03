@@ -11,13 +11,15 @@ data class ProdutoResponse (
     val estoque: Int,
     val tipo: String,
     val camposDescricao: Map<String, Any?> = emptyMap(),
-    val imagemUrl: String? = null
+    val imagemUrl: String? = null,
+    val id: String? = null // ID do produto, opcional
 )
 
 fun Produto.toResponse(): ProdutoResponse {
     val campos = this.descricao?.descricaoCampos ?: emptyMap()
 
     return ProdutoResponse(
+        id = this.id.toString(),
         codigoBarras = this.codigoBarras,
         nome = this.nome,
         preco = this.estadoAtual?.preco ?: BigDecimal.ZERO,

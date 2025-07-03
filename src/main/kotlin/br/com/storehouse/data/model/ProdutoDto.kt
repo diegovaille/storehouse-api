@@ -12,5 +12,6 @@ data class ProdutoDto(
     val precoCusto: BigDecimal,
     val estoque: Int,
     val descricaoCampos: Map<String, Any>? = null, // ← Novo campo
-    val imagemUrl: String? = null // Referencia para imagem remota
+    val imagemUrl: String? = null, // Referencia para imagem remota
+    val id: String? = null // ID do produto, opcional
 )

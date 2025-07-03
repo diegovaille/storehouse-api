@@ -46,8 +46,17 @@ class ProdutoService(
             else -> null
         }
 
-        val existente = produtoRepository
-            .findByCodigoBarrasAndFilialIdAndExcluidoFalse(dto.codigoBarras, filialId)
+        val existente: Produto? = if (!dto.id.isNullOrBlank()) {
+            val uuid = UUID.fromString(dto.id)
+            produtoRepository.findById(uuid).orElseThrow {
+                EntidadeNaoEncontradaException("Produto com id ${dto.id} não encontrado.")
+            }
+        } else {
+            produtoRepository.findByCodigoBarrasAndFilialIdAndExcluidoFalse(
+                dto.codigoBarras,
+                filialId
+            )
+        }
 
         return if (existente == null) {
             criarNovoProduto(dto, tipoProduto, filial, imagemUrlFinal)
