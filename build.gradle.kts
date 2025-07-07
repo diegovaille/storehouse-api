@@ -19,6 +19,7 @@ val ociSdkVersion = "3.67.2"
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-aop")
     implementation("org.postgresql:postgresql:42.7.3")
     implementation("org.liquibase:liquibase-core")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
@@ -32,7 +33,6 @@ dependencies {
     implementation("com.oracle.oci.sdk:oci-java-sdk-objectstorage:$ociSdkVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-common:$ociSdkVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociSdkVersion")
-//    implementation("com.oracle.oci.sdk:oci-java-sdk-addons-resteasy-client-configurator:$ociSdkVersion")
     runtimeOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")

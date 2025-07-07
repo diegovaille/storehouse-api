@@ -9,6 +9,7 @@ import br.com.storehouse.data.model.ProdutoDto
 import br.com.storehouse.data.repository.*
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
 import br.com.storehouse.exceptions.RequisicaoInvalidaException
+import br.com.storehouse.logging.LogCall
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
@@ -182,6 +183,7 @@ class ProdutoService(
     fun buscarPorCodigo(filialId: UUID, codigo: String): Produto? =
         produtoRepository.findByCodigoBarrasAndFilialIdAndExcluidoFalse(codigo, filialId)
 
+    @LogCall
     @Transactional
     fun atualizarEstoque(filialId: UUID, codigo: String, novoEstoque: Int) {
         val produto = buscarProdutoValido(filialId, codigo)
@@ -204,6 +206,7 @@ class ProdutoService(
         }
     }
 
+    @LogCall
     @Transactional
     fun removerLogicamente(filialId: UUID, codigoBarras: String) {
         val produto = buscarProdutoValido(filialId, codigoBarras)

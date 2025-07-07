@@ -15,6 +15,7 @@ import br.com.storehouse.data.repository.VendaRepository
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
 import br.com.storehouse.exceptions.EstadoInvalidoException
 import br.com.storehouse.exceptions.RequisicaoInvalidaException
+import br.com.storehouse.logging.LogCall
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -29,6 +30,7 @@ class VendaService(
     private val usuarioRepository: UsuarioRepository,
     private val filialRepository: FilialRepository
 ) {
+    @LogCall
     @Transactional
     fun registrarVenda(
         filialId: UUID,
@@ -110,6 +112,7 @@ class VendaService(
 
     fun listarVendas(): List<VendaResponse> = vendaRepo.findAll().map { it.toResponse() }
 
+    @LogCall
     fun listarVendasPorPeriodo(filialId: UUID, inicio: String?, fim: String?, apenasAtiva: Boolean): List<VendaResponse> {
         val dataInicio = inicio?.let { LocalDateTime.parse("${it}T00:00:00") }
             ?: LocalDateTime.now().withHour(0).withMinute(0).withSecond(0)
@@ -121,6 +124,8 @@ class VendaService(
             .map { it.toResponse() }
     }
 
+    @LogCall
+    @Transactional
     fun cancelarVenda(filialId: UUID, id: String) {
         val venda = vendaRepo.findByIdOrNull(UUID.fromString(id))
             ?: throw EntidadeNaoEncontradaException("Venda com ID $id não encontrada")
