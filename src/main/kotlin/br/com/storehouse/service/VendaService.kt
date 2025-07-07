@@ -110,13 +110,14 @@ class VendaService(
 
     fun listarVendas(): List<VendaResponse> = vendaRepo.findAll().map { it.toResponse() }
 
-    fun listarVendasPorPeriodo(filialId: UUID, inicio: String?, fim: String?): List<VendaResponse> {
+    fun listarVendasPorPeriodo(filialId: UUID, inicio: String?, fim: String?, apenasAtiva: Boolean): List<VendaResponse> {
         val dataInicio = inicio?.let { LocalDateTime.parse("${it}T00:00:00") }
             ?: LocalDateTime.now().withHour(0).withMinute(0).withSecond(0)
         val dataFim = fim?.let { LocalDateTime.parse("${it}T23:59:59") }
             ?: LocalDateTime.now().withHour(23).withMinute(59).withSecond(59)
 
         return vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, dataInicio, dataFim)
+            .filter { venda -> !apenasAtiva || !venda.cancelada }
             .map { it.toResponse() }
     }
 
