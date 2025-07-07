@@ -15,11 +15,19 @@ class LoggingAspect {
 
     @Around("@annotation(br.com.storehouse.logging.LogCall)")
     fun logMethodCall(joinPoint: ProceedingJoinPoint): Any? {
-        val className = joinPoint.signature.declaringType.simpleName
-        val methodName = joinPoint.signature.name
-        val args = joinPoint.args.joinToString(", ") { it.toString() }
+        val methodSignature = joinPoint.signature as org.aspectj.lang.reflect.MethodSignature
+        val className = methodSignature.declaringType.simpleName
+        val methodName = methodSignature.name
+        val parameterNames = methodSignature.parameterNames
+        val args = joinPoint.args
 
-        logger.info("➡️ Called $className.$methodName with args: [$args]")
+        val paramMap = parameterNames.zip(args).associate { (name, value) ->
+            name to (value?.toString() ?: "null")
+        }
+
+        val formattedParams = paramMap.entries.joinToString(", ") { "${it.key}=${it.value}" }
+
+        logger.info("➡️ Called $className.$methodName with: [$formattedParams]")
 
         var result: Any?
         val duration = measureTimeMillis {
