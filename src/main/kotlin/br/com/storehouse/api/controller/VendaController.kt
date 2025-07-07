@@ -32,7 +32,7 @@ class VendaController(private val vendaService: VendaService) {
         @RequestParam apenasAtiva: Boolean = true,
         @AuthenticationPrincipal usuario: UsuarioAutenticado
     ): List<VendaResponse> {
-        return vendaService.listarVendasPorPeriodo(usuario.filialId, inicio, fim)
+        return vendaService.listarVendasPorPeriodo(usuario.filialId, inicio, fim, apenasAtiva)
     }
 
     @DeleteMapping("/{id}")
