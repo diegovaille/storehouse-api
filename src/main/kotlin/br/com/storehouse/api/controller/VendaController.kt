@@ -29,7 +29,7 @@ class VendaController(private val vendaService: VendaService) {
     fun listarPorPeriodo(
         @RequestParam(required = false) inicio: String?,
         @RequestParam(required = false) fim: String?,
-        @RequestParam apenasAtiva: Boolean = true,
+        @RequestParam(required = false) apenasAtiva: Boolean = true,
         @AuthenticationPrincipal usuario: UsuarioAutenticado
     ): List<VendaResponse> {
         return vendaService.listarVendasPorPeriodo(usuario.filialId, inicio, fim, apenasAtiva)
