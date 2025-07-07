@@ -157,6 +157,7 @@ fun Venda.toResponse(): VendaResponse = VendaResponse(
     data = this.data.toString(),
     vendedorNome = this.vendedor.username ?: "Desconhecido",
     vendedorEmail = this.vendedor.email,
+    cancelada = this.cancelada,
     itens = this.itens.map {
         ItemVendaResponse(
             produtoNome = it.produto.nome,

@@ -9,6 +9,7 @@ data class VendaResponse(
     val data: String,
     val vendedorNome: String,
     val vendedorEmail: String,
+    val cancelada: Boolean,
     val itens: List<ItemVendaResponse>
 )
 
