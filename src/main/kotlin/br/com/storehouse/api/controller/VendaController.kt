@@ -34,6 +34,15 @@ class VendaController(private val vendaService: VendaService) {
         return vendaService.listarVendasPorPeriodo(usuario.filialId, inicio, fim)
     }
 
+    @DeleteMapping("/{id}")
+    fun cancelarVenda(
+        @PathVariable id: String,
+        @AuthenticationPrincipal usuario: UsuarioAutenticado
+    ): ResponseEntity<Void> {
+        vendaService.cancelarVenda(usuario.filialId, id)
+        return ResponseEntity.noContent().build()
+    }
+
 }
 
 

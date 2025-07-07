@@ -14,6 +14,7 @@ import br.com.storehouse.data.repository.UsuarioRepository
 import br.com.storehouse.data.repository.VendaRepository
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
 import br.com.storehouse.exceptions.EstadoInvalidoException
+import br.com.storehouse.exceptions.RequisicaoInvalidaException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -117,6 +118,35 @@ class VendaService(
 
         return vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, dataInicio, dataFim)
             .map { it.toResponse() }
+    }
+
+    fun cancelarVenda(filialId: UUID, id: String) {
+        val venda = vendaRepo.findByIdOrNull(UUID.fromString(id))
+            ?: throw EntidadeNaoEncontradaException("Venda com ID $id não encontrada")
+
+        if (venda.filial.id != filialId) {
+            throw EntidadeNaoEncontradaException("Venda com ID $id não pertence à filial $filialId")
+        }
+
+        // Verifica se a venda já foi cancelada
+        if (venda.cancelada) {
+            throw RequisicaoInvalidaException("Venda com ID $id já foi cancelada")
+        }
+
+        // Marca a venda como cancelada
+        venda.cancelada = true
+
+        // Atualiza o estoque dos produtos vendidos
+        venda.itens.forEach { item ->
+            val produto = item.produto
+            val estadoAtual = produto.estadoAtual ?: return@forEach
+
+            // Restaura o estoque do produto
+            estadoAtual.estoque += item.quantidade
+            produto.estadoAtual = estadoAtual
+        }
+
+        vendaRepo.save(venda)
     }
 }
 
