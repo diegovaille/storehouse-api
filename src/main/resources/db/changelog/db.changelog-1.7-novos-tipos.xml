@@ -1,0 +1,52 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="insert-dados-novos-tipos" author="dev">
+
+        <!-- TipoProduto: Papelaria -->
+        <insert tableName="tipo_produto">
+            <column name="id" value="811a2db8-5edc-4ea6-8786-6defc423f3bd"/>
+            <column name="nome" value="Papelaria"/>
+            <column name="campos" value='{"fabricante": "String","quantidade_itens": "Integer","cor": "String","material": "String","modelo": "String"}'/>
+        </insert>
+
+        <!-- TipoProduto: Jogos -->
+        <insert tableName="tipo_produto">
+            <column name="id" value="a13e217f-62a3-4d1b-bc86-1ec5659a447d"/>
+            <column name="nome" value="Jogos"/>
+            <column name="campos" value='{"fabricante": "String","faixa_etaria": "String","quantidade_jogadores": "String","tipo": "String"}'/>
+        </insert>
+
+        <!-- TipoProduto: Diversos -->
+        <insert tableName="tipo_produto">
+            <column name="id" value="c9997700-5b33-4cd9-b6a9-46058ffe5374"/>
+            <column name="nome" value="Diversos"/>
+            <column name="campos" value='{"descricao":"String"}'/>
+        </insert>
+
+        <!-- TipoProduto: Doces -->
+        <insert tableName="tipo_produto">
+            <column name="id" value="a1c13f92-6e74-4d15-9bd8-1eaf0d884cfd"/>
+            <column name="nome" value="Doces"/>
+            <column name="campos" value='{"fabricante": "String","peso_gramas": "Integer","sabor": "String"}'/>
+        </insert>
+
+        <!-- TipoProduto: Bebidas -->
+        <insert tableName="tipo_produto">
+            <column name="id" value="eb5ac09b-59b4-4df2-a373-86346b25a1c9"/>
+            <column name="nome" value="Bebidas"/>
+            <column name="campos" value='{"marca": "String","volume_ml": "Integer","tipo": "String"}'/>
+        </insert>
+
+        <!-- TipoProduto: Alimentos -->
+        <insert tableName="tipo_produto">
+            <column name="id" value="1285d553-e6c4-4c8e-bfd6-40c743a36b6d"/>
+            <column name="nome" value="Alimentos"/>
+            <column name="campos" value='{"tipo": "String"}'/>
+        </insert>
+
+    </changeSet>
+</databaseChangeLog>
