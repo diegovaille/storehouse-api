@@ -178,7 +178,7 @@ class ProdutoService(
     }
 
     fun listarTodos(filialId: UUID): List<Produto> =
-        produtoRepository.findByFilialIdAndExcluidoFalse(filialId)
+        produtoRepository.findByFilialIdAndExcluidoFalseOrderByNomeAsc(filialId)
 
     fun buscarPorCodigo(filialId: UUID, codigo: String): Produto? =
         produtoRepository.findByCodigoBarrasAndFilialIdAndExcluidoFalse(codigo, filialId)

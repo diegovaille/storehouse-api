@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.*
 
 interface ProdutoRepository : JpaRepository<Produto, UUID> {
-    fun findByFilialIdAndExcluidoFalse(filialId: UUID): List<Produto>
+    fun findByFilialIdAndExcluidoFalseOrderByNomeAsc(filialId: UUID): List<Produto>
     fun findByCodigoBarrasAndFilialIdAndExcluidoFalse(codigoBarras: String, filialId: UUID): Produto?
 }
