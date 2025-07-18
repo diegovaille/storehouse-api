@@ -13,5 +13,5 @@
     <include file="db/changelog/db.changelog-1.5-venda.xml"/>
     <include file="db/changelog/db.changelog-1.6-dados-iniciais.xml"/>
     <include file="db/changelog/db.changelog-1.7-novos-tipos.xml"/>
-
+    <include file="db/changelog/db.changelog-1.8-cantina.xml"/>
 </databaseChangeLog>
