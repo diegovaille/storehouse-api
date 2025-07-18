@@ -1,0 +1,23 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="insert-dados-cantina" author="dev">
+
+        <!-- 🏬 Filial Primeira Store -->
+        <insert tableName="filial">
+            <column name="id" value="280bebed-eb52-4b5b-a41a-d648bb2cbc60"/>
+            <column name="organizacao_id" value="20587698-1b67-4cbb-8a08-d7e9fe56a77d"/>
+            <column name="nome" value="Primeira Cafeteria"/>
+            <column name="cnpj" value="52579836000196"/>
+            <column name="razao_social" value="Café da Primeira - Cantina"/>
+            <column name="municipio" value="Mogi das Cruzes"/>
+            <column name="estado" value="SP"/>
+            <column name="ativo" valueBoolean="true"/>
+            <column name="logo_url" value="https://objectstorage.sa-saopaulo-1.oraclecloud.com/n/grz9zu8hdz2q/b/storehouse-images/o/20587698-1b67-4cbb-8a08-d7e9fe56a77d%2F280bebed-eb52-4b5b-a41a-d648bb2cbc60%2Flogo.png"/>
+        </insert>
+
+    </changeSet>
+</databaseChangeLog>
