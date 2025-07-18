@@ -6,6 +6,10 @@
 
     <changeSet id="insert-dados-cantina" author="dev">
 
+        <dropUniqueConstraint
+                constraintName="filial_cnpj_key"
+                tableName="filial"/>
+
         <!-- 🏬 Filial Primeira Store -->
         <insert tableName="filial">
             <column name="id" value="280bebed-eb52-4b5b-a41a-d648bb2cbc60"/>
