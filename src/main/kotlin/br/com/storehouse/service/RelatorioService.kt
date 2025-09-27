@@ -13,6 +13,7 @@ import com.itextpdf.layout.properties.UnitValue
 import org.springframework.stereotype.Service
 import java.io.ByteArrayOutputStream
 import java.math.BigDecimal
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @Service
@@ -23,10 +24,11 @@ class RelatorioService {
         val pdf = PdfDocument(writer)
         val document = Document(pdf)
 
-        val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+        val formatterInput = DateTimeFormatter.ISO_DATE_TIME  // ou "yyyy-MM-dd'T'HH:mm:ss" se preferir fixar
+        val formatterOutput = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
-        val dataInicio = vendas.minOfOrNull { it.data }?.format(formatter) ?: "-"
-        val dataFim = vendas.maxOfOrNull { it.data }?.format(formatter) ?: "-"
+        val dataInicio = vendas.minOfOrNull { LocalDateTime.parse(it.data, formatterInput).toLocalDate() }?.format(formatterOutput) ?: "-"
+        val dataFim = vendas.maxOfOrNull { LocalDateTime.parse(it.data, formatterInput).toLocalDate() }?.format(formatterOutput) ?: "-"
 
         document.add(Paragraph("Relatório de Vendas").setFontSize(18f))
         document.add(Paragraph("Período: $dataInicio  -  $dataFim"))
@@ -45,7 +47,7 @@ class RelatorioService {
                 ResumoProduto(qtdTotal, totalVenda, totalCusto, estoqueAtual)
             }
 
-        val table = Table(floatArrayOf(6f, 2f, 3f, 3f, 3f, 2f))
+        val table = Table(floatArrayOf(6f, 1.2f, 2.5f, 2.5f, 2.5f, 1.5f))
         table.setWidth(UnitValue.createPercentValue(100f))
 
         table.addHeaderCell(Cell().add(Paragraph("Item")))
