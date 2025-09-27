@@ -5,11 +5,15 @@ import com.itextpdf.kernel.font.PdfFontFactory
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfWriter
 import com.itextpdf.layout.Document
+import com.itextpdf.layout.element.Cell
 import com.itextpdf.layout.element.Paragraph
 import com.itextpdf.layout.element.Table
+import com.itextpdf.layout.properties.TextAlignment
+import com.itextpdf.layout.properties.UnitValue
 import org.springframework.stereotype.Service
 import java.io.ByteArrayOutputStream
 import java.math.BigDecimal
+import java.time.format.DateTimeFormatter
 
 @Service
 class RelatorioService {
@@ -19,10 +23,13 @@ class RelatorioService {
         val pdf = PdfDocument(writer)
         val document = Document(pdf)
 
+        val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+
+        val dataInicio = vendas.minOfOrNull { it.data }?.format(formatter) ?: "-"
+        val dataFim = vendas.maxOfOrNull { it.data }?.format(formatter) ?: "-"
+
         document.add(Paragraph("Relatório de Vendas").setFontSize(18f))
-        document.add(
-            Paragraph("Período: ${vendas.minOfOrNull { it.data }} - ${vendas.maxOfOrNull { it.data }}")
-        )
+        document.add(Paragraph("Período: $dataInicio  -  $dataFim"))
         document.add(Paragraph("\n"))
 
         // 🔹 Agrupamento por produto
@@ -38,7 +45,9 @@ class RelatorioService {
                 ResumoProduto(qtdTotal, totalVenda, totalCusto, estoqueAtual)
             }
 
-        val table = Table(floatArrayOf(5f, 2f, 3f, 3f, 3f, 2f))
+        val table = Table(floatArrayOf(5f, 1f, 3f, 3f, 3f, 2f))
+        table.setWidth(UnitValue.createPercentValue(100f)) // ocupa 100% da largura da página
+
         table.addHeaderCell("Item")
         table.addHeaderCell("Qtd Vendida")
         table.addHeaderCell("Total Vendas")
@@ -46,36 +55,43 @@ class RelatorioService {
         table.addHeaderCell("Lucro")
         table.addHeaderCell("Estoque Atual")
 
-        var somaVendas = BigDecimal.ZERO
-        var somaCustos = BigDecimal.ZERO
+        var totalVendas = BigDecimal.ZERO
+        var totalCustos = BigDecimal.ZERO
 
         vendasAgrupamentoPorProduto.forEach { (produtoNome, resumo) ->
             val lucro = resumo.totalVenda.subtract(resumo.totalCusto)
 
-            somaVendas = somaVendas.add(resumo.totalVenda)
-            somaCustos = somaCustos.add(resumo.totalCusto)
+            totalVendas = totalVendas.add(resumo.totalVenda)
+            totalCustos = totalCustos.add(resumo.totalCusto)
 
             table.addCell(produtoNome)
-            table.addCell(resumo.qtdVendida.toString())
-            table.addCell("R$ ${resumo.totalVenda.setScale(2)}")
-            table.addCell("R$ ${resumo.totalCusto.setScale(2)}")
-            table.addCell("R$ ${lucro.setScale(2)}")
+            table.addCell(Cell().add(Paragraph(resumo.qtdVendida.toString())).setTextAlignment(TextAlignment.RIGHT))
+            table.addCell(Cell().add(Paragraph("R$ ${resumo.totalVenda.setScale(2)}")).setTextAlignment(TextAlignment.RIGHT))
+            table.addCell(Cell().add(Paragraph("R$ ${resumo.totalCusto.setScale(2)}")).setTextAlignment(TextAlignment.RIGHT))
+            table.addCell(Cell().add(Paragraph("R$ ${lucro.setScale(2)}")).setTextAlignment(TextAlignment.RIGHT))
             table.addCell(resumo.estoqueAtual.toString())
         }
 
         document.add(table)
         document.add(Paragraph("\n"))
 
-        val lucroTotal = somaVendas.subtract(somaCustos)
-
+        val lucroTotal = totalVendas.subtract(totalCustos)
 
         val boldFont = PdfFontFactory.createFont(com.itextpdf.io.font.constants.StandardFonts.HELVETICA_BOLD)
 
-        document.add(Paragraph("Resumo Financeiro:").setFont(boldFont).setFontSize(18f))
-        document.add(Paragraph("Total Vendido: R$ ${somaVendas.setScale(2)}"))
-        document.add(Paragraph("Custo Total: R$ ${somaCustos.setScale(2)}"))
-        document.add(Paragraph("Lucro: R$ ${lucroTotal.setScale(2)}"))
+        document.add(Paragraph("\nResumo Financeiro:").setFont(boldFont).setFontSize(14f))
+        val resumo = Table(floatArrayOf(3f, 3f, 3f))
 
+        resumo.setWidth(UnitValue.createPercentValue(100f))
+        resumo.addHeaderCell("Total Vendas")
+        resumo.addHeaderCell("Total Custos")
+        resumo.addHeaderCell("Lucro Total")
+
+        resumo.addCell(Cell().add(Paragraph("R$ ${totalVendas.setScale(2)}")).setTextAlignment(TextAlignment.RIGHT))
+        resumo.addCell(Cell().add(Paragraph("R$ ${totalCustos.setScale(2)}")).setTextAlignment(TextAlignment.RIGHT))
+        resumo.addCell(Cell().add(Paragraph("R$ ${lucroTotal.setScale(2)}")).setTextAlignment(TextAlignment.RIGHT))
+
+        document.add(resumo)
         document.close()
 
         return baos.toByteArray()
