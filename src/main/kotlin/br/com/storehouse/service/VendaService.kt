@@ -121,7 +121,7 @@ class VendaService(
     fun listarVendas(): List<VendaResponse> = vendaRepo.findAll().map { it.toResponse(false) }
 
     @LogCall
-    fun listarVendasPorPeriodo(filialId: UUID, inicio: String?, fim: String?, apenasAtiva: Boolean, estoque: Boolean): List<VendaResponse> {
+    fun listarVendasPorPeriodo(filialId: UUID, inicio: String?, fim: String?, apenasAtiva: Boolean, relatorio: Boolean): List<VendaResponse> {
         val dataInicio = inicio?.let { LocalDateTime.parse("${it}T00:00:00") }
             ?: LocalDateTime.now().withHour(0).withMinute(0).withSecond(0)
         val dataFim = fim?.let { LocalDateTime.parse("${it}T23:59:59") }
@@ -131,7 +131,7 @@ class VendaService(
         val listaVendas = vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, dataInicio, dataFim)
         return vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, dataInicio, dataFim)
             .filter { venda -> !apenasAtiva || !venda.cancelada }
-            .map { it.toResponse(estoque) }
+            .map { it.toResponse(relatorio) }
     }
 
     @LogCall
@@ -166,7 +166,7 @@ class VendaService(
     }
 }
 
-fun Venda.toResponse(estoque: Boolean): VendaResponse = VendaResponse(
+fun Venda.toResponse(relatorio: Boolean): VendaResponse = VendaResponse(
     id = this.id,
     valorTotal = this.valorTotal ?: BigDecimal.ZERO,
     data = this.data.toString(),
@@ -178,7 +178,8 @@ fun Venda.toResponse(estoque: Boolean): VendaResponse = VendaResponse(
             produtoNome = it.produto.nome,
             quantidade = it.quantidade,
             precoUnitario = it.precoUnitario,
-            estoque = if (estoque) it.produto.estadoAtual!!.estoque else null
+            estoque = if (relatorio) it.produto.estadoAtual!!.estoque else null,
+            precoCusto = if (relatorio) it.produto.estadoAtual!!.precoCusto else null,
         )
     }
 )
