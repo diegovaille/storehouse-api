@@ -45,15 +45,15 @@ class RelatorioService {
                 ResumoProduto(qtdTotal, totalVenda, totalCusto, estoqueAtual)
             }
 
-        val table = Table(floatArrayOf(5f, 1f, 3f, 3f, 3f, 2f))
-        table.setWidth(UnitValue.createPercentValue(100f)) // ocupa 100% da largura da página
+        val table = Table(floatArrayOf(6f, 2f, 3f, 3f, 3f, 2f))
+        table.setWidth(UnitValue.createPercentValue(100f))
 
-        table.addHeaderCell("Item")
-        table.addHeaderCell("Qtd Vendida")
-        table.addHeaderCell("Total Vendas")
-        table.addHeaderCell("Custo Total")
-        table.addHeaderCell("Lucro")
-        table.addHeaderCell("Estoque Atual")
+        table.addHeaderCell(Cell().add(Paragraph("Item")))
+        table.addHeaderCell(Cell().add(Paragraph("Qtd")).setTextAlignment(TextAlignment.CENTER))
+        table.addHeaderCell(Cell().add(Paragraph("Total Vendas")).setTextAlignment(TextAlignment.CENTER))
+        table.addHeaderCell(Cell().add(Paragraph("Custo Total")).setTextAlignment(TextAlignment.CENTER))
+        table.addHeaderCell(Cell().add(Paragraph("Lucro")).setTextAlignment(TextAlignment.CENTER))
+        table.addHeaderCell(Cell().add(Paragraph("Estoque")).setTextAlignment(TextAlignment.CENTER))
 
         var totalVendas = BigDecimal.ZERO
         var totalCustos = BigDecimal.ZERO
