@@ -4,7 +4,8 @@ import java.math.BigDecimal
 
 data class VendaRequest(
     val itens: List<ItemVendaRequest>,
-    val pagamentos: List<PagamentoVendaRequest>
+    val pagamentos: List<PagamentoVendaRequest>,
+    val voucher: Boolean = false
 )
 
 data class ItemVendaRequest(

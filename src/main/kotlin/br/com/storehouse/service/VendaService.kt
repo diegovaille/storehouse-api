@@ -47,7 +47,8 @@ class VendaService(
         val venda = Venda(
             vendedor = usuario,
             valorTotal = BigDecimal.ZERO,
-            filial = filial
+            filial = filial,
+            voucher = request.voucher
         )
 
         val vendaItens = request.itens.map { item ->
@@ -78,11 +79,18 @@ class VendaService(
                 venda = venda,
                 produto = produto,
                 quantidade = item.quantidade,
-                precoUnitario = estadoAtual.preco
+                precoUnitario = if (venda.voucher) estadoAtual.preco.divide(BigDecimal(2)) else estadoAtual.preco
             )
         }
 
-        venda.valorTotal = calcularTotal(vendaItens)
+        var total = calcularTotal(vendaItens)
+
+        // aplica desconto se for voucher
+        if (request.voucher) {
+            total = total.divide(BigDecimal(2))
+        }
+
+        venda.valorTotal = total
         venda.itens = vendaItens
 
         val pagamentos = request.pagamentos.map { pagamento ->
@@ -90,7 +98,7 @@ class VendaService(
             val tipoPagamento = runCatching {
                 TipoPagamento.valueOf(pagamento.tipo.uppercase())
             }.getOrElse {
-                throw br.com.storehouse.exceptions.RequisicaoInvalidaException("Tipo de pagamento inválido: ${pagamento.tipo}")
+                throw RequisicaoInvalidaException("Tipo de pagamento inválido: ${pagamento.tipo}")
             }
 
             br.com.storehouse.data.entities.VendaPagamento(
@@ -102,7 +110,7 @@ class VendaService(
 
         venda.pagamentos = pagamentos // Adicione esse campo na entidade `Venda`
 
-        return vendaRepo.save(venda).toResponse()
+        return vendaRepo.save(venda).toResponse(false)
     }
 
     private fun calcularTotal(itens: List<VendaItem>): BigDecimal =
@@ -110,18 +118,20 @@ class VendaService(
             acc + item.precoUnitario.multiply(BigDecimal.valueOf(item.quantidade.toLong()))
         }
 
-    fun listarVendas(): List<VendaResponse> = vendaRepo.findAll().map { it.toResponse() }
+    fun listarVendas(): List<VendaResponse> = vendaRepo.findAll().map { it.toResponse(false) }
 
     @LogCall
-    fun listarVendasPorPeriodo(filialId: UUID, inicio: String?, fim: String?, apenasAtiva: Boolean): List<VendaResponse> {
+    fun listarVendasPorPeriodo(filialId: UUID, inicio: String?, fim: String?, apenasAtiva: Boolean, estoque: Boolean): List<VendaResponse> {
         val dataInicio = inicio?.let { LocalDateTime.parse("${it}T00:00:00") }
             ?: LocalDateTime.now().withHour(0).withMinute(0).withSecond(0)
         val dataFim = fim?.let { LocalDateTime.parse("${it}T23:59:59") }
             ?: LocalDateTime.now().withHour(23).withMinute(59).withSecond(59)
 
+
+        val listaVendas = vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, dataInicio, dataFim)
         return vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, dataInicio, dataFim)
             .filter { venda -> !apenasAtiva || !venda.cancelada }
-            .map { it.toResponse() }
+            .map { it.toResponse(estoque) }
     }
 
     @LogCall
@@ -156,7 +166,7 @@ class VendaService(
     }
 }
 
-fun Venda.toResponse(): VendaResponse = VendaResponse(
+fun Venda.toResponse(estoque: Boolean): VendaResponse = VendaResponse(
     id = this.id,
     valorTotal = this.valorTotal ?: BigDecimal.ZERO,
     data = this.data.toString(),
@@ -167,7 +177,8 @@ fun Venda.toResponse(): VendaResponse = VendaResponse(
         ItemVendaResponse(
             produtoNome = it.produto.nome,
             quantidade = it.quantidade,
-            precoUnitario = it.precoUnitario
+            precoUnitario = it.precoUnitario,
+            estoque = if (estoque) it.produto.estadoAtual!!.estoque else null
         )
     }
 )

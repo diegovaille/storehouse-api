@@ -34,5 +34,8 @@ class Venda(
     var itens: List<VendaItem> = mutableListOf(),
 
     @OneToMany(mappedBy = "venda", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var pagamentos: List<VendaPagamento> = mutableListOf()
+    var pagamentos: List<VendaPagamento> = mutableListOf(),
+
+    @Column(nullable = false)
+    var voucher: Boolean = false
 )
