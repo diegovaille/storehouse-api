@@ -152,7 +152,7 @@ class ProdutoService(
     private fun precisaNovoEstado(estadoAtual: ProdutoEstado?, dto: ProdutoDto): Boolean {
         return estadoAtual == null ||
                 estadoAtual.estoque != dto.estoque ||
-                estadoAtual.preco != dto.preco
+                estadoAtual.preco != dto.preco || estadoAtual.precoCusto != dto.precoCusto
     }
 
     private fun validarProduto(dto: ProdutoDto, tipoProduto: TipoProduto) {
