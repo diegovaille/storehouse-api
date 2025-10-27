@@ -15,7 +15,7 @@ class InsightController(
 ) {
 
     @GetMapping("/vendas")
-    suspend fun gerarInsightVendas(
+    fun gerarInsightVendas(
         @AuthenticationPrincipal usuario: UsuarioAutenticado,
         @RequestParam(required = false) inicio: String?,
         @RequestParam(required = false) fim: String?,
