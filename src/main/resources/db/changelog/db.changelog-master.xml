@@ -15,4 +15,5 @@
     <include file="db/changelog/db.changelog-1.7-novos-tipos.xml"/>
     <include file="db/changelog/db.changelog-1.8-cantina.xml"/>
     <include file="db/changelog/db.changelog-1.9-voucher.xml"/>
+    <include file="db/changelog/db.changelog-2.0-insight-vendas.xml"/>
 </databaseChangeLog>

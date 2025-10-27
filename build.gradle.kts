@@ -34,6 +34,8 @@ dependencies {
     implementation("com.oracle.oci.sdk:oci-java-sdk-common:$ociSdkVersion")
     implementation("com.oracle.oci.sdk:oci-java-sdk-common-httpclient-jersey3:$ociSdkVersion")
     implementation("com.itextpdf:itext-core:9.3.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.9.0")
     runtimeOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")

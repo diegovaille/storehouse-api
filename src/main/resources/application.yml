@@ -4,3 +4,6 @@ spring:
 
 app:
   frontend-base-url: ""
+
+openai:
+  api-key: ${OPENAI_API_KEY}
