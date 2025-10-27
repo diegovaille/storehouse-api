@@ -53,8 +53,7 @@ class InsightService(
             1. Um resumo sobre o desempenho de vendas e lucros.
             2. Itens com estoque baixo que precisam de recompra imediata.
             3. Sugestões de novos títulos com foco em: autoajuda cristã, devocionais, discipulado, casais e jovens.
-            4. Recomendações práticas para aumentar as vendas da loja.
-
+            
             Resumo do período:
             - Período: ${resumo.periodo}
             - Total de vendas: R$ ${resumo.totalVendas.setScale(2)}
