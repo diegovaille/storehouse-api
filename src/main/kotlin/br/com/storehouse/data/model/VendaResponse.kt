@@ -15,6 +15,7 @@ data class VendaResponse(
 
 data class ItemVendaResponse(
     val produtoNome: String,
+    val categoria: String,
     val quantidade: Int,
     val precoUnitario: BigDecimal,
     val estoque: Int?,

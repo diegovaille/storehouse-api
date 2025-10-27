@@ -176,6 +176,7 @@ fun Venda.toResponse(relatorio: Boolean): VendaResponse = VendaResponse(
     itens = this.itens.map {
         ItemVendaResponse(
             produtoNome = it.produto.nome,
+            categoria = it.produto.tipo.nome,
             quantidade = it.quantidade,
             precoUnitario = it.precoUnitario,
             estoque = if (relatorio) it.produto.estadoAtual!!.estoque else null,
