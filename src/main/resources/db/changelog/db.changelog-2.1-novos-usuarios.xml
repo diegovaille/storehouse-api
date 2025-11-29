@@ -1,0 +1,25 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="insert-dados-iniciais" author="dev">
+
+        <!-- 👤 Usuário Bruno -->
+        <insert tableName="usuario">
+            <column name="id" value="26ecbc25-cac7-4762-a21b-0dd5748063da"/>
+            <column name="username" value="brunosiolin"/>
+            <column name="email" value="brunosiolin@gmail.com"/>
+            <column name="password" value="$2a$10$wckIYIj2jLV81/9k/f6sYe/CFRnbbDLn0PJOpqnmx6DdMD6SEOK.i"/>
+        </insert>
+
+        <!-- 🔗 Vínculo -->
+        <insert tableName="organizacao_usuario">
+            <column name="usuario_id" value="26ecbc25-cac7-4762-a21b-0dd5748063da"/>
+            <column name="organizacao_id" value="20587698-1b67-4cbb-8a08-d7e9fe56a77d"/>
+            <column name="perfil_id" value="cfa045aa-6f0b-456e-90cc-b9bc4c03b78d"/>
+        </insert>
+
+    </changeSet>
+</databaseChangeLog>
