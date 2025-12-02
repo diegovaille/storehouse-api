@@ -16,6 +16,7 @@ repositories {
 val awsSdkVersion = "2.25.12"
 val ociSdkVersion = "3.67.2"
 
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -39,6 +40,14 @@ dependencies {
     runtimeOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
+
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("io.cucumber:cucumber-java:7.15.0")
+    testImplementation("io.cucumber:cucumber-spring:7.15.0")
+    testImplementation("io.cucumber:cucumber-junit-platform-engine:7.15.0")
+    testImplementation("org.junit.platform:junit-platform-suite:1.10.2")
+    testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.testcontainers:postgresql")
 }
 
 tasks.test {

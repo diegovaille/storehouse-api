@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+  liquibase:
+    enabled: false
+
+project:
+  storage:
+    default-bucket: test-bucket
+    buckets:
+      - name: test-bucket
+        region: us-east-1
+        provider: aws
+        accessKey: test
+        secretKey: test
+        endpoint: http://localhost:4566
+
+jwt:
+  secret: test-secret-key-for-testing-purposes-only
+  expiration: 3600000
+
+app:
+  frontend-base-url: http://localhost:8080
+
+openai:
+  api-key: test-key
+
+isbndb:
+  api-key: test-key
