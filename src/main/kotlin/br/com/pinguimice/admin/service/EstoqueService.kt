@@ -29,19 +29,21 @@ class EstoqueService(
     private val saborRepository: SaborRepository
 ) {
 
-    // ==================== MATÉRIA PRIMA (INSUMOS) ====================
-    
+    /**
+     * Matéria Prima (Insumos)
+     */
     @LogCall
     fun listarMateriaPrima(): List<MateriaPrimaResponse> {
         return materiaPrimaRepository.findAll().map { it.toResponse() }
     }
 
+    /**
+     * Cria uma nova matéria prima (insumo).
+     */
     @LogCall
     @Transactional
     fun criarMateriaPrima(request: MateriaPrimaRequest): MateriaPrimaResponse {
-        val sabor = request.saborId?.let { 
-            saborRepository.findByIdOrNull(it) ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
-        }
+        val sabor = obterSabor(request.saborId)
 
         val totalUnidades = calcularTotalUnidadesMateriaPrima(request.tipoEntrada, request.quantidadeEntrada)
         
@@ -65,15 +67,20 @@ class EstoqueService(
         return materiaPrimaRepository.save(materiaPrima).toResponse()
     }
 
+    private fun obterSabor(id: UUID?): Sabor {
+        return saborRepository.findByIdOrNull(id) ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
+    }
+
+    /**
+     * Atualiza uma matéria prima (insumo) existente.
+     */
     @LogCall
     @Transactional
     fun atualizarMateriaPrima(id: UUID, request: MateriaPrimaRequest): MateriaPrimaResponse {
         val materiaPrima = materiaPrimaRepository.findByIdOrNull(id)
             ?: throw EntidadeNaoEncontradaException("Matéria prima não encontrada")
 
-        val sabor = request.saborId?.let { 
-            saborRepository.findByIdOrNull(it) ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
-        }
+        val sabor = obterSabor(request.saborId)
 
         val totalUnidades = calcularTotalUnidadesMateriaPrima(request.tipoEntrada, request.quantidadeEntrada)
         val precoPorUnidade = if (totalUnidades > 0) {
@@ -96,6 +103,9 @@ class EstoqueService(
         return materiaPrimaRepository.save(materiaPrima).toResponse()
     }
 
+    /**
+     * Calcula o total de unidades de matéria prima com base no tipo de entrada e quantidade.
+     */
     private fun calcularTotalUnidadesMateriaPrima(tipo: TipoEntrada, quantidade: BigDecimal): Int {
         return when (tipo) {
             TipoEntrada.CAIXA -> (quantidade.toDouble() * TOTAL_PACOTES_POR_CAIXA * UNIDADES_POR_PACOTE).toInt()
@@ -104,19 +114,21 @@ class EstoqueService(
         }
     }
 
-    // ==================== EMBALAGEM ====================
-
+    /**
+     * Embalagens
+     */
     @LogCall
     fun listarEmbalagens(): List<EmbalagemResponse> {
         return embalagemRepository.findAll().map { it.toResponse() }
     }
 
+    /**
+     * Cria uma nova embalagem.
+     */
     @LogCall
     @Transactional
     fun criarEmbalagem(request: EmbalagemRequest): EmbalagemResponse {
-        val sabor = request.saborId?.let { 
-            saborRepository.findByIdOrNull(it) ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
-        }
+        val sabor = obterSabor(request.saborId)
 
         val totalUnidades = (request.quantidadeKg.toDouble() * UNIDADES_POR_EMBALAGEM_KG).toInt()
         
@@ -139,15 +151,16 @@ class EstoqueService(
         return embalagemRepository.save(embalagem).toResponse()
     }
 
+    /**
+     * Atualiza uma embalagem existente.
+     */
     @LogCall
     @Transactional
     fun atualizarEmbalagem(id: UUID, request: EmbalagemRequest): EmbalagemResponse {
         val embalagem = embalagemRepository.findByIdOrNull(id)
             ?: throw EntidadeNaoEncontradaException("Embalagem não encontrada")
 
-        val sabor = request.saborId?.let { 
-            saborRepository.findByIdOrNull(it) ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
-        }
+        val sabor = obterSabor(id = request.saborId)
 
         val totalUnidades = (request.quantidadeKg.toDouble() * UNIDADES_POR_EMBALAGEM_KG).toInt()
         val precoPorUnidade = if (totalUnidades > 0) {
@@ -169,13 +182,17 @@ class EstoqueService(
         return embalagemRepository.save(embalagem).toResponse()
     }
 
-    // ==================== OUTROS ====================
-
+    /**
+     * Outros
+     */
     @LogCall
     fun listarOutros(): List<OutrosResponse> {
         return outrosRepository.findAll().map { it.toResponse() }
     }
 
+    /**
+     * Cria um novo item de outros.
+     */
     @LogCall
     @Transactional
     fun criarOutros(request: OutrosRequest): OutrosResponse {
@@ -200,8 +217,9 @@ class EstoqueService(
         return outrosRepository.save(outros).toResponse()
     }
 
-    // ==================== ESTOQUE GELINHO ====================
-
+    /**
+     * Atualiza um item de outros existente.
+     */
     @LogCall
     fun listarEstoqueGelinho(): List<EstoqueGelinhoResponse> {
         return estoqueGelinhoRepository.findAll().map { it.toResponse() }
@@ -229,143 +247,145 @@ class EstoqueService(
     @LogCall
     @Transactional
     fun deduzirEstoqueParaProducao(sabor: Sabor, quantidadeProduzida: Int) {
-        // 1. Deduct Insumos (by flavor) - FIFO
+        // 1) Insumos
         val insumos = materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
-        if (insumos.isEmpty()) {
-             throw RequisicaoInvalidaException("Nenhum estoque de insumo encontrado para o sabor ${sabor.nome}")
+        require(insumos.isNotEmpty()) {
+            throw RequisicaoInvalidaException("Nenhum estoque de insumo encontrado para o sabor ${sabor.nome}")
         }
-        
-        var quantidadeRestanteInsumo = quantidadeProduzida
-        
-        // Check total stock first
-        val totalEstoqueInsumo = insumos.sumOf { it.estoqueUnidades }
-        if (totalEstoqueInsumo < quantidadeProduzida) {
-            throw RequisicaoInvalidaException("Estoque insuficiente de insumo para o sabor ${sabor.nome}. Disponível: $totalEstoqueInsumo, Necessário: $quantidadeProduzida")
+        validarDisponivel(insumos.sumOf { it.estoqueUnidades }, quantidadeProduzida) {
+            "Estoque insuficiente de insumo para o sabor ${sabor.nome}. Disponível: $it, Necessário: $quantidadeProduzida"
         }
+        deduzirFIFO(
+            items = insumos,
+            quantidade = quantidadeProduzida,
+            getEstoque = { it.estoqueUnidades },
+            setEstoque = { item, novo -> item.estoqueUnidades = novo },
+            save = { materiaPrimaRepository.save(it) }
+        )
 
-        for (insumo in insumos) {
-            if (quantidadeRestanteInsumo <= 0) break
-            
-            if (insumo.estoqueUnidades >= quantidadeRestanteInsumo) {
-                insumo.estoqueUnidades -= quantidadeRestanteInsumo
-                quantidadeRestanteInsumo = 0
-            } else {
-                quantidadeRestanteInsumo -= insumo.estoqueUnidades
-                insumo.estoqueUnidades = 0
-            }
-            materiaPrimaRepository.save(insumo)
-        }
-
-        // 2. Deduct Embalagem (by flavor) - FIFO
+        // 2) Embalagens
         val embalagens = embalagemRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
-        if (embalagens.isEmpty()) {
-             throw RequisicaoInvalidaException("Nenhum estoque de embalagem encontrado para o sabor ${sabor.nome}")
+        require(embalagens.isNotEmpty()) {
+            throw RequisicaoInvalidaException("Nenhum estoque de embalagem encontrado para o sabor ${sabor.nome}")
         }
-
-        var quantidadeRestanteEmbalagem = quantidadeProduzida
-        
-        val totalEstoqueEmbalagem = embalagens.sumOf { it.estoqueUnidades }
-        if (totalEstoqueEmbalagem < quantidadeProduzida) {
-            throw RequisicaoInvalidaException("Estoque insuficiente de embalagem para o sabor ${sabor.nome}. Disponível: $totalEstoqueEmbalagem, Necessário: $quantidadeProduzida")
+        validarDisponivel(embalagens.sumOf { it.estoqueUnidades }, quantidadeProduzida) {
+            "Estoque insuficiente de embalagem para o sabor ${sabor.nome}. Disponível: $it, Necessário: $quantidadeProduzida"
         }
+        deduzirFIFO(
+            items = embalagens,
+            quantidade = quantidadeProduzida,
+            getEstoque = { it.estoqueUnidades },
+            setEstoque = { item, novo -> item.estoqueUnidades = novo },
+            save = { embalagemRepository.save(it) }
+        )
 
-        for (embalagem in embalagens) {
-            if (quantidadeRestanteEmbalagem <= 0) break
-            
-            if (embalagem.estoqueUnidades >= quantidadeRestanteEmbalagem) {
-                embalagem.estoqueUnidades -= quantidadeRestanteEmbalagem
-                quantidadeRestanteEmbalagem = 0
-            } else {
-                quantidadeRestanteEmbalagem -= embalagem.estoqueUnidades
-                embalagem.estoqueUnidades = 0
-            }
-            embalagemRepository.save(embalagem)
-        }
-
-        // 3. Deduct Outros (Plastics - 1 per 50 units) - FIFO
+        // 3) Plásticos (1 por 50 unidades \- arredonda para múltiplos de 50)
         val plasticosNecessarios = ceil(quantidadeProduzida / 50.0).toInt() * 50
-        
-        // Find "Plástico" items
         val plasticos = outrosRepository.findByNomeContainingIgnoreCaseOrderByDataCriacaoAsc("Plástico")
-        if (plasticos.isEmpty()) {
-             // If no plastic found, maybe we shouldn't block? Or throw?
-             // Assuming strict control:
-             throw RequisicaoInvalidaException("Nenhum estoque de plástico encontrado")
+        require(plasticos.isNotEmpty()) {
+            throw RequisicaoInvalidaException("Nenhum estoque de plástico encontrado")
         }
-
-        var quantidadeRestantePlastico = plasticosNecessarios
-        
-        val totalEstoquePlastico = plasticos.sumOf { it.estoqueUnidades }
-        if (totalEstoquePlastico < plasticosNecessarios) {
-             throw RequisicaoInvalidaException("Estoque insuficiente de plásticos. Disponível: $totalEstoquePlastico, Necessário: $plasticosNecessarios")
+        validarDisponivel(plasticos.sumOf { it.estoqueUnidades }, plasticosNecessarios) {
+            "Estoque insuficiente de plásticos. Disponível: $it, Necessário: $plasticosNecessarios"
         }
-
-        for (plastico in plasticos) {
-            if (quantidadeRestantePlastico <= 0) break
-            
-            if (plastico.estoqueUnidades >= quantidadeRestantePlastico) {
-                plastico.estoqueUnidades -= quantidadeRestantePlastico
-                quantidadeRestantePlastico = 0
-            } else {
-                quantidadeRestantePlastico -= plastico.estoqueUnidades
-                plastico.estoqueUnidades = 0
-            }
-            outrosRepository.save(plastico)
-        }
+        deduzirFIFO(
+            items = plasticos,
+            quantidade = plasticosNecessarios,
+            getEstoque = { it.estoqueUnidades },
+            setEstoque = { item, novo -> item.estoqueUnidades = novo },
+            save = { outrosRepository.save(it) }
+        )
     }
 
     @LogCall
     @Transactional
     fun reverterDeducaoEstoque(sabor: Sabor, quantidadeProduzida: Int) {
-        // 1. Restore Insumos (by flavor) - Add back to the most recent batches (reverse FIFO)
-        val insumos = materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
-        if (insumos.isNotEmpty()) {
-            var quantidadeRestanteInsumo = quantidadeProduzida
-            
-            // Add back to the most recent batches first (reverse order)
-            for (insumo in insumos.reversed()) {
-                if (quantidadeRestanteInsumo <= 0) break
-                
-                val quantidadeARestaurar = minOf(quantidadeRestanteInsumo, insumo.totalUnidades - insumo.estoqueUnidades)
-                insumo.estoqueUnidades += quantidadeARestaurar
-                quantidadeRestanteInsumo -= quantidadeARestaurar
-                
-                materiaPrimaRepository.save(insumo)
-            }
+        // 1) Insumos
+        val insumos = materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id).apply {
+            restaurarReverseFIFO(
+                items = this,
+                quantidade = quantidadeProduzida,
+                getTotal = { it.totalUnidades },
+                getEstoque = { it.estoqueUnidades },
+                addEstoque = { item, delta -> item.estoqueUnidades += delta },
+                save = { materiaPrimaRepository.save(it) }
+            )
         }
 
-        // 2. Restore Embalagem (by flavor)
+        // 2) Embalagens
         val embalagens = embalagemRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
-        if (embalagens.isNotEmpty()) {
-            var quantidadeRestanteEmbalagem = quantidadeProduzida
-            
-            for (embalagem in embalagens.reversed()) {
-                if (quantidadeRestanteEmbalagem <= 0) break
-                
-                val quantidadeARestaurar = minOf(quantidadeRestanteEmbalagem, embalagem.totalUnidades - embalagem.estoqueUnidades)
-                embalagem.estoqueUnidades += quantidadeARestaurar
-                quantidadeRestanteEmbalagem -= quantidadeARestaurar
-                
-                embalagemRepository.save(embalagem)
-            }
-        }
+        restaurarReverseFIFO(
+            items = embalagens,
+            quantidade = quantidadeProduzida,
+            getTotal = { it.totalUnidades },
+            getEstoque = { it.estoqueUnidades },
+            addEstoque = { item, delta -> item.estoqueUnidades += delta },
+            save = { embalagemRepository.save(it) }
+        )
 
-        // 3. Restore Outros (Plastics - 1 per 50 units)
+        // 3) Plásticos
         val plasticosNecessarios = ceil(quantidadeProduzida / 50.0).toInt() * 50
         val plasticos = outrosRepository.findByNomeContainingIgnoreCaseOrderByDataCriacaoAsc("Plástico")
-        
-        if (plasticos.isNotEmpty()) {
-            var quantidadeRestantePlastico = plasticosNecessarios
-            
-            for (plastico in plasticos.reversed()) {
-                if (quantidadeRestantePlastico <= 0) break
-                
-                val quantidadeARestaurar = minOf(quantidadeRestantePlastico, plastico.totalUnidades - plastico.estoqueUnidades)
-                plastico.estoqueUnidades += quantidadeARestaurar
-                quantidadeRestantePlastico -= quantidadeARestaurar
-                
-                outrosRepository.save(plastico)
+        restaurarReverseFIFO(
+            items = plasticos,
+            quantidade = plasticosNecessarios,
+            getTotal = { it.totalUnidades },
+            getEstoque = { it.estoqueUnidades },
+            addEstoque = { item, delta -> item.estoqueUnidades += delta },
+            save = { outrosRepository.save(it) }
+        )
+    }
+
+    private fun validarDisponivel(disponivel: Int, necessario: Int, msg: (Int) -> String) {
+        if (disponivel < necessario) throw RequisicaoInvalidaException(msg(disponivel))
+    }
+
+    /**
+     * Restaura em Reverse FIFO: preenche dos mais novos para os mais antigos,
+     * sem ultrapassar `totalUnidades`.
+     */
+    private fun <T> restaurarReverseFIFO(
+        items: List<T>,
+        quantidade: Int,
+        getTotal: (T) -> Int,
+        getEstoque: (T) -> Int,
+        addEstoque: (T, Int) -> Unit,
+        save: (T) -> Unit
+    ) {
+        var restante = quantidade
+        for (item in items.asReversed()) {
+            if (restante <= 0) break
+            val capacidade = getTotal(item) - getEstoque(item)
+            if (capacidade <= 0) continue
+            val aRestaurar = minOf(restante, capacidade)
+            addEstoque(item, aRestaurar)
+            restante -= aRestaurar
+            save(item)
+        }
+    }
+
+    /**
+     * Deduz em FIFO: consome dos mais antigos para os mais novos.
+     */
+    private fun <T> deduzirFIFO(
+        items: List<T>,
+        quantidade: Int,
+        getEstoque: (T) -> Int,
+        setEstoque: (T, Int) -> Unit,
+        save: (T) -> Unit
+    ) {
+        var restante = quantidade
+        for (item in items) {
+            if (restante <= 0) break
+            val estoque = getEstoque(item)
+            if (estoque >= restante) {
+                setEstoque(item, estoque - restante)
+                restante = 0
+            } else {
+                setEstoque(item, 0)
+                restante -= estoque
             }
+            save(item)
         }
     }
 }

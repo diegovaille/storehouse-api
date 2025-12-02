@@ -1,0 +1,51 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- Pinguimice Admin Module - Input-Time Calculations -->
+    <changeSet id="pinguimice-create-schema" author="dev">
+    <!-- 🏢 Organização Primeira Igreja Batista -->
+    <insert tableName="organizacao">
+        <column name="id" value="246a8e9a-6bd5-4b55-a8cb-033de66f676a"/>
+        <column name="nome" value="Pinguim Ice"/>
+        <column name="cnpj" value="60774613000108"/>
+        <column name="razao_social" value="Pinguim Ice LTDA"/>
+        <column name="endereco" value="Centro"/>
+        <column name="municipio" value="Caraguatatuba"/>
+        <column name="estado" value="SP"/>
+        <column name="tipo" value="FABRICA"/>
+    </insert>
+
+    <!-- 🏬 Filial Pinguim Ice -->
+    <insert tableName="filial">
+        <column name="id" value="bd03afb8-8110-4fc7-ab3e-99b7a140312b"/>
+        <column name="organizacao_id" value="246a8e9a-6bd5-4b55-a8cb-033de66f676a"/>
+        <column name="nome" value="Pinguim Ice - Fábrica"/>
+        <column name="cnpj" value="60774613000108"/>
+        <column name="razao_social" value="Pinguim Ice LTDA"/>
+        <column name="municipio" value="Caraguatatuba"/>
+        <column name="estado" value="SP"/>
+        <column name="ativo" valueBoolean="true"/>
+    </insert>
+
+    <!-- 👤 Usuário Pinguim Ice -->
+    <insert tableName="usuario">
+        <column name="id" value="458ea421-c109-417c-a8e0-a87c89de8133"/>
+        <column name="username" value="pinguim"/>
+        <column name="email" value="admin@pinguimice.com.br"/>
+        <column name="password" value="$2a$10$aM9NI7VeE4axBi23a/NMiO.pAdKS79J68tCaJZUKCjDSY8WspiW3q"/>
+    </insert>
+
+    <!-- 🔗 Vínculo -->
+    <insert tableName="organizacao_usuario">
+        <column name="usuario_id" value="458ea421-c109-417c-a8e0-a87c89de8133"/>
+        <column name="organizacao_id" value="246a8e9a-6bd5-4b55-a8cb-033de66f676a"/>
+        <column name="perfil_id" value="cfa045aa-6f0b-456e-90cc-b9bc4c03b78d"/>
+    </insert>
+
+    </changeSet>
+</databaseChangeLog>

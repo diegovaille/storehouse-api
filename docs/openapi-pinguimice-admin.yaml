@@ -1,0 +1,784 @@
+openapi: 3.0.3
+info:
+  title: Pinguimice Admin API
+  description: API para gerenciamento administrativo da Pinguimice - Fábrica de Gelinhos
+  version: 1.0.0
+  contact:
+    name: Pinguimice Team
+    email: contato@pinguimice.com.br
+
+servers:
+  - url: http://localhost:8080
+    description: Local Development
+  - url: https://api.pinguimice.com.br
+    description: Production
+
+tags:
+  - name: Sabores
+    description: Gerenciamento de sabores de gelinhos
+  - name: Regiões
+    description: Gerenciamento de regiões de venda
+  - name: Estoque
+    description: Gerenciamento de estoque (matéria prima, embalagem, outros)
+  - name: Produção
+    description: Registro e gerenciamento de produção
+  - name: Despesas
+    description: Gerenciamento de despesas
+
+paths:
+  /api/pinguimice-admin/sabores:
+    get:
+      tags:
+        - Sabores
+      summary: Listar sabores
+      operationId: listarSabores
+      parameters:
+        - name: apenasAtivos
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Lista de sabores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SaborResponse'
+    post:
+      tags:
+        - Sabores
+      summary: Criar novo sabor
+      operationId: criarSabor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaborRequest'
+      responses:
+        '201':
+          description: Sabor criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaborResponse'
+
+  /api/pinguimice-admin/regioes:
+    get:
+      tags:
+        - Regiões
+      summary: Listar regiões de venda
+      operationId: listarRegioes
+      parameters:
+        - name: apenasAtivos
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Lista de regiões
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegiaoVendaResponse'
+    post:
+      tags:
+        - Regiões
+      summary: Criar nova região
+      operationId: criarRegiao
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegiaoVendaRequest'
+      responses:
+        '201':
+          description: Região criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegiaoVendaResponse'
+
+  /api/pinguimice-admin/regioes/{id}:
+    put:
+      tags:
+        - Regiões
+      summary: Atualizar região
+      operationId: atualizarRegiao
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegiaoVendaRequest'
+      responses:
+        '200':
+          description: Região atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegiaoVendaResponse'
+
+  /api/pinguimice-admin/materia-prima:
+    get:
+      tags:
+        - Estoque
+      summary: Listar matéria prima
+      operationId: listarMateriaPrima
+      responses:
+        '200':
+          description: Lista de matéria prima
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MateriaPrimaResponse'
+    post:
+      tags:
+        - Estoque
+      summary: Criar matéria prima
+      operationId: criarMateriaPrima
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MateriaPrimaRequest'
+      responses:
+        '201':
+          description: Matéria prima criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MateriaPrimaResponse'
+
+  /api/pinguimice-admin/materia-prima/{id}:
+    put:
+      tags:
+        - Estoque
+      summary: Atualizar matéria prima
+      operationId: atualizarMateriaPrima
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MateriaPrimaRequest'
+      responses:
+        '200':
+          description: Matéria prima atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MateriaPrimaResponse'
+
+  /api/pinguimice-admin/embalagem:
+    get:
+      tags:
+        - Estoque
+      summary: Listar embalagens
+      operationId: listarEmbalagens
+      responses:
+        '200':
+          description: Lista de embalagens
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmbalagemResponse'
+    post:
+      tags:
+        - Estoque
+      summary: Criar embalagem
+      operationId: criarEmbalagem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbalagemRequest'
+      responses:
+        '201':
+          description: Embalagem criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbalagemResponse'
+
+  /api/pinguimice-admin/embalagem/{id}:
+    put:
+      tags:
+        - Estoque
+      summary: Atualizar embalagem
+      operationId: atualizarEmbalagem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbalagemRequest'
+      responses:
+        '200':
+          description: Embalagem atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbalagemResponse'
+
+  /api/pinguimice-admin/outros:
+    get:
+      tags:
+        - Estoque
+      summary: Listar outros itens
+      operationId: listarOutros
+      responses:
+        '200':
+          description: Lista de outros itens
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutrosResponse'
+    post:
+      tags:
+        - Estoque
+      summary: Criar outros itens
+      operationId: criarOutros
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutrosRequest'
+      responses:
+        '201':
+          description: Item criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutrosResponse'
+
+  /api/pinguimice-admin/estoque-gelinho:
+    get:
+      tags:
+        - Estoque
+      summary: Listar estoque de gelinhos
+      operationId: listarEstoqueGelinho
+      responses:
+        '200':
+          description: Lista de estoque de gelinhos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EstoqueGelinhoResponse'
+
+  /api/pinguimice-admin/producao:
+    get:
+      tags:
+        - Produção
+      summary: Listar produção
+      operationId: listarProducao
+      parameters:
+        - name: inicio
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: fim
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lista de produções
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProducaoResponse'
+    post:
+      tags:
+        - Produção
+      summary: Registrar produção
+      operationId: registrarProducao
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProducaoRequest'
+      responses:
+        '201':
+          description: Produção registrada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProducaoResponse'
+
+  /api/pinguimice-admin/producao/{id}:
+    delete:
+      tags:
+        - Produção
+      summary: Excluir produção
+      operationId: excluirProducao
+      description: Exclui uma produção e reverte as deduções de estoque (se aplicável)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Produção excluída com sucesso
+
+  /api/pinguimice-admin/despesas:
+    get:
+      tags:
+        - Despesas
+      summary: Listar despesas
+      operationId: listarDespesas
+      parameters:
+        - name: inicio
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: fim
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lista de despesas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DespesaResponse'
+    post:
+      tags:
+        - Despesas
+      summary: Criar despesa
+      operationId: criarDespesa
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - dados
+              properties:
+                dados:
+                  $ref: '#/components/schemas/DespesaRequest'
+                arquivo:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Despesa criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DespesaResponse'
+
+  /api/pinguimice-admin/despesas/{id}:
+    put:
+      tags:
+        - Despesas
+      summary: Atualizar despesa
+      operationId: atualizarDespesa
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - dados
+              properties:
+                dados:
+                  $ref: '#/components/schemas/DespesaRequest'
+                arquivo:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Despesa atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DespesaResponse'
+    delete:
+      tags:
+        - Despesas
+      summary: Deletar despesa
+      operationId: deletarDespesa
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Despesa deletada com sucesso
+
+components:
+  schemas:
+    SaborRequest:
+      type: object
+      required:
+        - nome
+      properties:
+        nome:
+          type: string
+        corHex:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          example: '#FF5733'
+
+    SaborResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        corHex:
+          type: string
+        ativo:
+          type: boolean
+        dataCriacao:
+          type: string
+          format: date-time
+
+    RegiaoVendaRequest:
+      type: object
+      required:
+        - nome
+      properties:
+        nome:
+          type: string
+        descricao:
+          type: string
+
+    RegiaoVendaResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        descricao:
+          type: string
+        ativo:
+          type: boolean
+        dataCriacao:
+          type: string
+          format: date-time
+
+    MateriaPrimaRequest:
+      type: object
+      required:
+        - nome
+        - tipoEntrada
+        - quantidadeEntrada
+        - precoEntrada
+      properties:
+        nome:
+          type: string
+        saborId:
+          type: string
+          format: uuid
+        tipoEntrada:
+          type: string
+          enum: [CAIXA, PACOTE, KG]
+        quantidadeEntrada:
+          type: number
+          format: decimal
+        precoEntrada:
+          type: number
+          format: decimal
+
+    MateriaPrimaResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        saborId:
+          type: string
+          format: uuid
+        saborNome:
+          type: string
+        tipoEntrada:
+          type: string
+          enum: [CAIXA, PACOTE, KG]
+        quantidadeEntrada:
+          type: number
+          format: decimal
+        precoEntrada:
+          type: number
+          format: decimal
+        totalUnidades:
+          type: integer
+          description: Total de unidades calculado automaticamente
+        precoPorUnidade:
+          type: number
+          format: decimal
+          description: Preço por unidade calculado automaticamente
+        estoqueUnidades:
+          type: integer
+          description: Estoque atual em unidades
+        dataCriacao:
+          type: string
+          format: date-time
+
+    EmbalagemRequest:
+      type: object
+      required:
+        - nome
+        - quantidadeKg
+        - precoKg
+      properties:
+        nome:
+          type: string
+        saborId:
+          type: string
+          format: uuid
+        quantidadeKg:
+          type: number
+          format: decimal
+        precoKg:
+          type: number
+          format: decimal
+
+    EmbalagemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        saborId:
+          type: string
+          format: uuid
+        saborNome:
+          type: string
+        quantidadeKg:
+          type: number
+          format: decimal
+        precoKg:
+          type: number
+          format: decimal
+        totalUnidades:
+          type: integer
+          description: Total de unidades (1kg = 700 unidades)
+        precoPorUnidade:
+          type: number
+          format: decimal
+        estoqueUnidades:
+          type: integer
+        dataCriacao:
+          type: string
+          format: date-time
+
+    OutrosRequest:
+      type: object
+      required:
+        - nome
+        - quantidadeEntrada
+        - precoEntrada
+        - unidadesPorItem
+      properties:
+        nome:
+          type: string
+        quantidadeEntrada:
+          type: integer
+        precoEntrada:
+          type: number
+          format: decimal
+        unidadesPorItem:
+          type: integer
+
+    OutrosResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        quantidadeEntrada:
+          type: integer
+        precoEntrada:
+          type: number
+          format: decimal
+        unidadesPorItem:
+          type: integer
+        totalUnidades:
+          type: integer
+        precoPorUnidade:
+          type: number
+          format: decimal
+        estoqueUnidades:
+          type: integer
+        dataCriacao:
+          type: string
+          format: date-time
+
+    EstoqueGelinhoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        saborId:
+          type: string
+          format: uuid
+        saborNome:
+          type: string
+        quantidade:
+          type: integer
+        ultimaAtualizacao:
+          type: string
+          format: date-time
+
+    ProducaoRequest:
+      type: object
+      required:
+        - saborId
+        - quantidadeProduzida
+      properties:
+        saborId:
+          type: string
+          format: uuid
+        quantidadeProduzida:
+          type: integer
+        deduzirEstoque:
+          type: boolean
+          default: true
+          description: Se true, deduz automaticamente matéria prima, embalagem e plásticos (FIFO)
+        dataProducao:
+          type: string
+          format: date-time
+        observacoes:
+          type: string
+
+    ProducaoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        saborId:
+          type: string
+          format: uuid
+        saborNome:
+          type: string
+        quantidadeProduzida:
+          type: integer
+        deduzirEstoque:
+          type: boolean
+        dataProducao:
+          type: string
+          format: date-time
+        observacoes:
+          type: string
+
+    DespesaRequest:
+      type: object
+      required:
+        - descricao
+        - valor
+      properties:
+        descricao:
+          type: string
+        valor:
+          type: number
+          format: decimal
+        dataVencimento:
+          type: string
+          format: date
+        dataPagamento:
+          type: string
+          format: date
+
+    DespesaResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        descricao:
+          type: string
+        valor:
+          type: number
+          format: decimal
+        dataVencimento:
+          type: string
+        dataPagamento:
+          type: string
+        anexoUrl:
+          type: string
+          format: uri
+        dataCriacao:
+          type: string
+          format: date-time
