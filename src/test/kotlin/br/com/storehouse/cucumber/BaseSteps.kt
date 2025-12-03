@@ -12,6 +12,7 @@ import br.com.storehouse.data.repository.UsuarioRepository
 import br.com.storehouse.service.StorageService
 import io.cucumber.java.Before
 import io.cucumber.java.en.Given
+import jakarta.persistence.EntityManager
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
@@ -38,6 +39,8 @@ open class BaseSteps {
     @Autowired protected lateinit var filialRepository: FilialRepository
     @Autowired protected lateinit var organizacaoRepository: OrganizacaoRepository
     @Autowired protected lateinit var perfilRepository: PerfilRepository
+    @Autowired protected lateinit var vendaRepository: PinguimVendaRepository
+    @Autowired protected lateinit var vendaItemRepository: PinguimVendaItemRepository
 
     protected var lastException: Exception? = null
 }

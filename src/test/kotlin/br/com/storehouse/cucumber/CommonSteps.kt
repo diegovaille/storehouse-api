@@ -17,6 +17,8 @@ class CommonSteps : BaseSteps() {
         materiaPrimaRepository.deleteAll()
         embalagemRepository.deleteAll()
         outrosRepository.deleteAll()
+        vendaItemRepository.deleteAll()
+        vendaRepository.deleteAll()
         saborRepository.deleteAll()
         regiaoVendaRepository.deleteAll()
         organizacaoUsuarioRepository.deleteAll()

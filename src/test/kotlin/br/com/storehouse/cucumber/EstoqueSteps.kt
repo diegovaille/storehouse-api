@@ -17,12 +17,12 @@ class EstoqueSteps : BaseSteps() {
     private var lastSaborResponse: SaborResponse? = null
 
     @Given("que existe um sabor {string}")
-    fun que_existe_um_sabor(nome: String) {
+    fun queExisteUmSabor(nome: String) {
         lastSaborResponse = saborService.criarSabor(SaborRequest(nome = nome, corHex = "#FFFFFF"))
     }
 
     @When("eu adiciono estoque de matéria prima {string} para o sabor {string} do tipo {string} com quantidade {double} e preço {double}")
-    fun eu_adiciono_estoque_materia_prima(nomeMp: String, nomeSabor: String, tipo: String, qtd: Double, preco: Double) {
+    fun euAdicionoEstoqueMateriaPrima(nomeMp: String, nomeSabor: String, tipo: String, qtd: Double, preco: Double) {
         val sabor = saborRepository.findAll().first { it.nome == nomeSabor }
         lastMateriaPrimaResponse = estoqueService.criarMateriaPrima(
             MateriaPrimaRequest(
@@ -36,7 +36,7 @@ class EstoqueSteps : BaseSteps() {
     }
 
     @Then("o sistema deve calcular {int} unidades totais")
-    fun o_sistema_deve_calcular_unidades(unidades: Int) {
+    fun oSistemaDeveCalcularUnidades(unidades: Int) {
         if (lastMateriaPrimaResponse != null) {
             assertEquals(unidades, lastMateriaPrimaResponse!!.totalUnidades)
         } else if (lastEmbalagemResponse != null) {
@@ -49,7 +49,7 @@ class EstoqueSteps : BaseSteps() {
     }
 
     @Then("o preço por unidade deve ser aproximadamente {double}")
-    fun o_preco_por_unidade_deve_ser(preco: Double) {
+    fun oPrecoPorUnidadeDeveSer(preco: Double) {
         val actual = lastMateriaPrimaResponse?.precoPorUnidade 
             ?: lastEmbalagemResponse?.precoPorUnidade 
             ?: lastOutrosResponse?.precoPorUnidade
@@ -59,7 +59,7 @@ class EstoqueSteps : BaseSteps() {
     }
 
     @When("eu adiciono estoque de embalagem {string} para o sabor {string} com {double} kg e preço {double}")
-    fun eu_adiciono_estoque_embalagem(nomeEmb: String, nomeSabor: String, qtd: Double, preco: Double) {
+    fun euAdicionoEstoqueEmbalagem(nomeEmb: String, nomeSabor: String, qtd: Double, preco: Double) {
         val sabor = saborRepository.findAll().first { it.nome == nomeSabor }
         lastEmbalagemResponse = estoqueService.criarEmbalagem(
             EmbalagemRequest(
@@ -72,7 +72,7 @@ class EstoqueSteps : BaseSteps() {
     }
 
     @When("eu adiciono estoque de outros {string} com quantidade {int}, preço {double} e unidades por item {int}")
-    fun eu_adiciono_estoque_outros(nome: String, qtd: Int, preco: Double, unidadesPorItem: Int) {
+    fun euAdicionoEstoqueOutros(nome: String, qtd: Int, preco: Double, unidadesPorItem: Int) {
         lastOutrosResponse = estoqueService.criarOutros(
             OutrosRequest(
                 nome = nome,

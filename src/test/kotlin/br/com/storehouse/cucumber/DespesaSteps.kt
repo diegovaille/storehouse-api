@@ -13,20 +13,20 @@ class DespesaSteps : BaseSteps() {
     private var lastDespesaResponse: DespesaResponse? = null
 
     @When("eu crio uma despesa {string} com valor {double}")
-    fun eu_crio_despesa(descricao: String, valor: Double) {
+    fun euCrioDespesa(descricao: String, valor: Double) {
         lastDespesaResponse = despesaService.criarDespesa(
             DespesaRequest(descricao = descricao, valor = BigDecimal.valueOf(valor))
         )
     }
 
     @Then("a despesa {string} deve ser listada com sucesso")
-    fun despesa_deve_ser_listada(descricao: String) {
+    fun despesaDeveSerListada(descricao: String) {
         val despesas = despesaService.listarDespesas(null, null)
         assertTrue(despesas.any { it.descricao == descricao })
     }
 
     @When("eu crio uma despesa {string} com valor {double} e anexo {string}")
-    fun eu_crio_despesa_com_anexo(descricao: String, valor: Double, anexo: String) {
+    fun euCrioDespesaComAnexo(descricao: String, valor: Double, anexo: String) {
         // TestStorageService will handle the upload
         lastDespesaResponse = despesaService.criarDespesa(
             DespesaRequest(descricao = descricao, valor = BigDecimal.valueOf(valor)),
@@ -37,7 +37,7 @@ class DespesaSteps : BaseSteps() {
     }
 
     @Then("a despesa {string} deve ter um link de anexo")
-    fun despesa_deve_ter_anexo(descricao: String) {
+    fun despesaDeveTerAnexo(descricao: String) {
         assertNotNull(lastDespesaResponse?.anexoUrl)
         assertTrue(lastDespesaResponse!!.anexoUrl!!.startsWith("file://"))
     }

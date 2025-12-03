@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="015-create-pinguim-venda" author="diegovaille">
+        <createTable tableName="venda" schemaName="pinguim">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="total" type="DECIMAL(10, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_pago" type="DECIMAL(10, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_venda" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cliente" type="VARCHAR(255)"/>
+            <column name="regiao_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_venda_regiao" references="pinguim.regiao_venda(id)"/>
+            </column>
+            <column name="usuario_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="venda_item" schemaName="pinguim">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="venda_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_venda_item_venda" references="pinguim.venda(id)"/>
+            </column>
+            <column name="sabor_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_venda_item_sabor" references="pinguim.sabor(id)"/>
+            </column>
+            <column name="quantidade" type="INT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
