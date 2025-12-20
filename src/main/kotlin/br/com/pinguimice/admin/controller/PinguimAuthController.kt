@@ -26,7 +26,8 @@ class PinguimAuthController(
     fun login(@RequestBody request: PinguimLoginRequest): ResponseEntity<Any> {
         // 1. Validate User
         val usuario = usuarioService.buscarPorUsername(request.username)
-            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            ?: usuarioService.buscarPorEmail(request.username) ?:
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(mapOf("error" to "Usuário não encontrado"))
 
         // 2. Validate Password

@@ -15,6 +15,16 @@ class JwtAuthenticationFilter(
     private val jwtUtils: JwtUtils
 ) : OncePerRequestFilter() {
 
+    private val excludedPaths = listOf(
+        "/api/pinguimice-admin/auth/login",
+        "/api/auth/**"
+    )
+
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
+        val path = request.servletPath
+        return excludedPaths.any { path.startsWith(it) }
+    }
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,

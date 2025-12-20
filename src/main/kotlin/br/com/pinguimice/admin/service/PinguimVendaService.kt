@@ -13,6 +13,8 @@ import br.com.storehouse.data.repository.UsuarioRepository
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
 import br.com.storehouse.exceptions.EstadoInvalidoException
 import br.com.storehouse.logging.LogCall
+import br.com.storehouse.service.DefaultStorageService
+import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -27,6 +29,7 @@ class PinguimVendaService(
     private val estoqueRepository: EstoqueGelinhoRepository,
     private val usuarioRepository: UsuarioRepository
 ) {
+    private val logger = LoggerFactory.getLogger(PinguimVendaService::class.java)
 
     @LogCall
     @Transactional
@@ -81,6 +84,7 @@ class PinguimVendaService(
 
         val vendas = vendaRepository.findByDataVendaBetweenOrderByDataVendaDesc(dataInicio, dataFim)
 
+        logger.info("Encontradas ${vendas.size} vendas entre $dataInicio e $dataFim")
         // Para simplificar, vamos buscar o nome do usuário de cada venda.
         // Em um cenário de alta performance, poderíamos fazer um fetch join ou cache.
         return vendas.map { venda ->

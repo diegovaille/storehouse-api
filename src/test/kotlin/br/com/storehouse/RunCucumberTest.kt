@@ -1,4 +1,4 @@
-package br.com.storehouse.cucumber
+package br.com.storehouse
 
 import org.junit.platform.suite.api.ConfigurationParameter
 import org.junit.platform.suite.api.IncludeEngines

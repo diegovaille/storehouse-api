@@ -24,6 +24,8 @@ tags:
     description: Registro e gerenciamento de produção
   - name: Despesas
     description: Gerenciamento de despesas
+  - name: Vendas
+    description: Gerenciamento de vendas
 
 paths:
   /api/pinguimice-admin/sabores:
@@ -475,6 +477,70 @@ paths:
         '204':
           description: Despesa deletada com sucesso
 
+  /api/pinguimice-admin/vendas:
+    get:
+      tags:
+        - Vendas
+      summary: Listar vendas
+      operationId: listarVendas
+      parameters:
+        - name: inicio
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: fim
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Lista de vendas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PinguimVendaResponse'
+    post:
+      tags:
+        - Vendas
+      summary: Registrar venda
+      operationId: registrarVenda
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PinguimVendaRequest'
+      responses:
+        '201':
+          description: Venda registrada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinguimVendaResponse'
+
+  /api/pinguimice-admin/vendas/{id}:
+    delete:
+      tags:
+        - Vendas
+      summary: Cancelar venda
+      operationId: cancelarVenda
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Venda cancelada com sucesso
+
 components:
   schemas:
     SaborRequest:
@@ -782,3 +848,73 @@ components:
         dataCriacao:
           type: string
           format: date-time
+
+    PinguimVendaRequest:
+      type: object
+      required:
+        - regiaoId
+        - itens
+        - total
+        - totalPago
+      properties:
+        regiaoId:
+          type: string
+          format: uuid
+        cliente:
+          type: string
+        itens:
+          type: array
+          items:
+            $ref: '#/components/schemas/PinguimVendaItemRequest'
+        total:
+          type: number
+          format: decimal
+        totalPago:
+          type: number
+          format: decimal
+
+    PinguimVendaItemRequest:
+      type: object
+      required:
+        - saborId
+        - quantidade
+      properties:
+        saborId:
+          type: string
+          format: uuid
+        quantidade:
+          type: integer
+
+    PinguimVendaResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        total:
+          type: number
+          format: decimal
+        totalPago:
+          type: number
+          format: decimal
+        dataVenda:
+          type: string
+          format: date-time
+        cliente:
+          type: string
+        regiao:
+          type: string
+        vendedor:
+          type: string
+        itens:
+          type: array
+          items:
+            $ref: '#/components/schemas/PinguimVendaItemResponse'
+
+    PinguimVendaItemResponse:
+      type: object
+      properties:
+        sabor:
+          type: string
+        quantidade:
+          type: integer

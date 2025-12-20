@@ -19,5 +19,6 @@
     <include file="db/changelog/db.changelog-2.1-novos-usuarios.xml"/>
     <include file="db/changelog/db.changelog-2.2-atualizar-horarios.xml"/>
     <include file="db/changelog/db.changelog-3.0-pinguimice-admin.xml"/>
+    <include file="db/changelog/db.changelog-3.1-pinguimice-organizacao.xml"/>
     <include file="db/changelog/db.changelog-3.2-vendas-pinguimice.xml"/>
 </databaseChangeLog>

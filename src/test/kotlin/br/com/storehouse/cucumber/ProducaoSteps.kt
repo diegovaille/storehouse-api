@@ -147,4 +147,29 @@ class ProducaoSteps : BaseSteps() {
         val estoque = estoqueGelinhoRepository.findBySaborId(sabor.id)
         assertEquals(qtd, estoque?.quantidade ?: 0)
     }
+
+    // ---------- Steps para açúcar (MP global) ----------
+    @Given("que existe estoque de açúcar com {int} unidades totais")
+    fun que_existe_estoque_acucar(unidades: Int) {
+        // Create MateriaPrima with sabor = null to represent sugar (global MP)
+        val mp = br.com.pinguimice.admin.entity.MateriaPrima(
+            nome = "Açúcar",
+            sabor = null,
+            tipoEntrada = "KG",
+            quantidadeEntrada = BigDecimal.ONE,
+            precoEntrada = BigDecimal.TEN,
+            totalUnidades = unidades,
+            precoPorUnidade = BigDecimal.ONE,
+            estoqueUnidades = unidades
+        )
+        materiaPrimaRepository.save(mp)
+    }
+
+    @Then("o estoque de açúcar deve ser {int}")
+    fun estoque_acucar_deve_ser(qtd: Int) {
+        val mps = materiaPrimaRepository.findBySaborIdIsNull().sortedBy { it.dataCriacao }
+        // Sum available estoqueUnidades across sugar entries
+        val total = mps.sumOf { it.estoqueUnidades }
+        assertEquals(qtd, total)
+    }
 }

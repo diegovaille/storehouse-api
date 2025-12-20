@@ -35,6 +35,14 @@ class EstoqueController(
         return estoqueService.atualizarMateriaPrima(id, request)
     }
 
+    @DeleteMapping("/materia-prima/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deletarMateriaPrima(
+        @PathVariable id: UUID
+    ) {
+        estoqueService.deletarMateriaPrima(id)
+    }
+
     // ==================== EMBALAGEM ====================
 
     @GetMapping("/embalagem")
@@ -58,6 +66,14 @@ class EstoqueController(
         return estoqueService.atualizarEmbalagem(id, request)
     }
 
+    @DeleteMapping("/embalagem/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deletarEmbalagem(
+        @PathVariable id: UUID
+    ) {
+        estoqueService.deletarEmbalagem(id)
+    }
+
     // ==================== OUTROS ====================
 
     @GetMapping("/outros")
@@ -73,6 +89,21 @@ class EstoqueController(
         return estoqueService.criarOutros(request)
     }
 
+    @PutMapping("/outros/{id}")
+    fun atualizarOutros(
+        @PathVariable id: UUID,
+        @RequestBody request: OutrosRequest
+    ): OutrosResponse {
+        return estoqueService.atualizarOutros(id, request)
+    }
+
+    @DeleteMapping("/outros/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deletarOutros(
+        @PathVariable id: UUID
+    ) {
+        estoqueService.deletarOutros(id)
+    }
     // ==================== ESTOQUE GELINHO ====================
 
     @GetMapping("/estoque-gelinho")
