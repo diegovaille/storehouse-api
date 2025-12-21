@@ -83,5 +83,6 @@ fun Despesa.toResponse() = DespesaResponse(
     dataVencimento = this.dataVencimento?.toString(),
     dataPagamento = this.dataPagamento?.toString(),
     anexoUrl = this.anexoUrl,
+    observacao = this.observacao,
     dataCriacao = this.dataCriacao
 )

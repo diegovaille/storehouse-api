@@ -9,7 +9,8 @@ data class DespesaRequest(
     val valor: BigDecimal,
     val dataVencimento: String? = null,
     val dataPagamento: String? = null,
-    val anexoUrl: String? = null
+    val anexoUrl: String? = null,
+    val observacao: String? = null
 )
 
 data class DespesaResponse(
@@ -19,5 +20,6 @@ data class DespesaResponse(
     val dataVencimento: String?,
     val dataPagamento: String?,
     val anexoUrl: String?,
+    val observacao: String?,
     val dataCriacao: LocalDateTime
 )

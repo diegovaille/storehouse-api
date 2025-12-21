@@ -8,7 +8,8 @@ data class PinguimVendaRequest(
     val cliente: String?,
     val itens: List<PinguimVendaItemRequest>,
     val total: BigDecimal,
-    val totalPago: BigDecimal
+    val totalPago: BigDecimal,
+    val abaterEstoque: Boolean = true
 )
 
 data class PinguimVendaItemRequest(
@@ -24,6 +25,7 @@ data class PinguimVendaResponse(
     val cliente: String?,
     val regiao: String,
     val vendedor: String,
+    val abaterEstoque: Boolean,
     val itens: List<PinguimVendaItemResponse>
 )
 

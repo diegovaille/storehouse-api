@@ -21,4 +21,8 @@
     <include file="db/changelog/db.changelog-3.0-pinguimice-admin.xml"/>
     <include file="db/changelog/db.changelog-3.1-pinguimice-organizacao.xml"/>
     <include file="db/changelog/db.changelog-3.2-vendas-pinguimice.xml"/>
+    <include file="db/changelog/db.changelog-3.3-indices-relatorios.xml"/>
+    <include file="db/changelog/db.changelog-3.4-despesa-observacao.xml"/>
+    <include file="db/changelog/db.changelog-3.5-venda-abater-estoque.xml"/>
+    <include file="db/changelog/db.changelog-3.6-parametros-calculo.xml"/>
 </databaseChangeLog>

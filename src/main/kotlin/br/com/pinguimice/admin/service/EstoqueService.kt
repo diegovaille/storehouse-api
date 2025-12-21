@@ -16,20 +16,22 @@ import java.util.*
 import kotlin.math.ceil
 import java.text.Normalizer
 
-private const val UNIDADES_POR_EMBALAGEM_KG = 700
-private const val TOTAL_PACOTES_POR_CAIXA = 120
-private const val TOTAL_UNIDADE_POR_KG = 266
-private const val TOTAL_UNIDADE_ACUCAR_POR_KG = 222
-private const val UNIDADES_POR_PACOTE = 4.4
-
 @Service
 class EstoqueService(
     private val materiaPrimaRepository: MateriaPrimaRepository,
     private val embalagemRepository: EmbalagemRepository,
     private val outrosRepository: OutrosRepository,
     private val estoqueGelinhoRepository: EstoqueGelinhoRepository,
-    private val saborRepository: SaborRepository
+    private val saborRepository: SaborRepository,
+    private val parametroCalculoService: ParametroCalculoService
 ) {
+
+    // Funções auxiliares para buscar parâmetros (com cache)
+    private fun getUnidadesPorEmbalagemKg() = parametroCalculoService.obterValor(ParametroCalculoService.UNIDADES_POR_EMBALAGEM_KG)
+    private fun getTotalPacotesPorCaixa() = parametroCalculoService.obterValor(ParametroCalculoService.TOTAL_PACOTES_POR_CAIXA)
+    private fun getTotalUnidadePorKg() = parametroCalculoService.obterValor(ParametroCalculoService.TOTAL_UNIDADE_POR_KG)
+    private fun getTotalUnidadeAcucarPorKg() = parametroCalculoService.obterValor(ParametroCalculoService.TOTAL_UNIDADE_ACUCAR_POR_KG)
+    private fun getUnidadesPorPacote() = parametroCalculoService.obterValor(ParametroCalculoService.UNIDADES_POR_PACOTE)
 
     /**
      * Matéria Prima (Insumos)
@@ -77,14 +79,14 @@ class EstoqueService(
     ): BigDecimal {
         when (tipoEntrada) {
             TipoEntrada.CAIXA -> {
-                val totalUnidades = TOTAL_PACOTES_POR_CAIXA * UNIDADES_POR_PACOTE
+                val totalUnidades = getTotalPacotesPorCaixa() * getUnidadesPorPacote()
                 return precoEntrada.divide(BigDecimal(totalUnidades), 4, RoundingMode.HALF_UP)
             }
             TipoEntrada.PACOTE -> {
-                return precoEntrada.divide(BigDecimal(UNIDADES_POR_PACOTE), 4, RoundingMode.HALF_UP)
+                return precoEntrada.divide(BigDecimal(getUnidadesPorPacote()), 4, RoundingMode.HALF_UP)
             }
             TipoEntrada.KG -> {
-                val unidadesPorKg = if (sabor != null) TOTAL_UNIDADE_POR_KG else TOTAL_UNIDADE_ACUCAR_POR_KG
+                val unidadesPorKg = if (sabor != null) getTotalUnidadePorKg() else getTotalUnidadeAcucarPorKg()
                 return precoEntrada.divide(BigDecimal(unidadesPorKg), 4, RoundingMode.HALF_UP)
             }
         }
@@ -133,10 +135,10 @@ class EstoqueService(
      */
     private fun calcularTotalUnidadesMateriaPrima(tipo: TipoEntrada, quantidade: BigDecimal, sabor: Sabor?): Int {
         return when (tipo) {
-            TipoEntrada.CAIXA -> (quantidade.toDouble() * TOTAL_PACOTES_POR_CAIXA * UNIDADES_POR_PACOTE).toInt()
-            TipoEntrada.PACOTE -> (quantidade.toDouble() * UNIDADES_POR_PACOTE).toInt()
+            TipoEntrada.CAIXA -> (quantidade.toDouble() * getTotalPacotesPorCaixa() * getUnidadesPorPacote()).toInt()
+            TipoEntrada.PACOTE -> (quantidade.toDouble() * getUnidadesPorPacote()).toInt()
             TipoEntrada.KG -> {
-                val unidadesPorKg = if (sabor != null) TOTAL_UNIDADE_POR_KG else TOTAL_UNIDADE_ACUCAR_POR_KG
+                val unidadesPorKg = if (sabor != null) getTotalUnidadePorKg() else getTotalUnidadeAcucarPorKg()
                 (quantidade.toDouble() * unidadesPorKg).toInt()
             }
         }
@@ -158,10 +160,10 @@ class EstoqueService(
     fun criarEmbalagem(request: EmbalagemRequest): EmbalagemResponse {
         val sabor = obterSabor(request.saborId)
 
-        val totalUnidades = (request.quantidadeKg.toDouble() * UNIDADES_POR_EMBALAGEM_KG).toInt()
-        
+        val totalUnidades = (request.quantidadeKg.toDouble() * getUnidadesPorEmbalagemKg()).toInt()
+
         val precoPorUnidade = if (totalUnidades > 0) {
-            request.precoKg.divide(BigDecimal(UNIDADES_POR_EMBALAGEM_KG), 4, RoundingMode.HALF_UP)
+            request.precoKg.divide(BigDecimal(getUnidadesPorEmbalagemKg()), 4, RoundingMode.HALF_UP)
         } else {
             BigDecimal.ZERO
         }
@@ -190,9 +192,9 @@ class EstoqueService(
 
         val sabor = obterSabor(id = request.saborId)
 
-        val totalUnidades = (request.quantidadeKg.toDouble() * UNIDADES_POR_EMBALAGEM_KG).toInt()
+        val totalUnidades = (request.quantidadeKg.toDouble() * getUnidadesPorEmbalagemKg()).toInt()
         val precoPorUnidade = if (totalUnidades > 0) {
-            request.precoKg.divide(BigDecimal(UNIDADES_POR_EMBALAGEM_KG), 4, RoundingMode.HALF_UP)
+            request.precoKg.divide(BigDecimal(getUnidadesPorEmbalagemKg()), 4, RoundingMode.HALF_UP)
         } else {
             BigDecimal.ZERO
         }
@@ -293,34 +295,56 @@ class EstoqueService(
     @Transactional
     fun deduzirEstoqueParaProducao(sabor: Sabor, quantidadeProduzida: Int) {
         // 1) Insumos
-        val insumos = if (saborUsaAcucar(sabor)) {
-            materiaPrimaRepository.findBySaborIdIsNull()
-        } else {
-            materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
-        }
+        // Se o sabor usa açúcar, deduz TANTO o açúcar quanto a matéria-prima do sabor
+        if (saborUsaAcucar(sabor)) {
+            // 1a) Deduzir açúcar (sabor = null)
+            val acucar = materiaPrimaRepository.findBySaborIdIsNull()
+            require(acucar.isNotEmpty()) {
+                throw RequisicaoInvalidaException("Nenhum estoque de açúcar encontrado para o sabor ${sabor.nome}")
+            }
+            validarDisponivel(acucar.sumOf { it.estoqueUnidades }, quantidadeProduzida) {
+                "Estoque insuficiente de açúcar para o sabor ${sabor.nome}. Disponível: $it, Necessário: $quantidadeProduzida"
+            }
+            deduzirFIFO(
+                items = acucar,
+                quantidade = quantidadeProduzida,
+                getEstoque = { it.estoqueUnidades },
+                setEstoque = { item, novo -> item.estoqueUnidades = novo },
+                save = { materiaPrimaRepository.save(it) }
+            )
 
-        require(insumos.isNotEmpty()) {
-            if (saborUsaAcucar(sabor)) {
-                throw RequisicaoInvalidaException("Nenhum estoque de insumo (açúcar) encontrado para o sabor ${sabor.nome}")
-            } else {
+            // 1b) Deduzir matéria-prima do próprio sabor (essência, corante, etc.)
+            val insumosSabor = materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
+            require(insumosSabor.isNotEmpty()) {
                 throw RequisicaoInvalidaException("Nenhum estoque de insumo encontrado para o sabor ${sabor.nome}")
             }
-        }
-
-        validarDisponivel(insumos.sumOf { it.estoqueUnidades }, quantidadeProduzida) {
-            if (saborUsaAcucar(sabor)) {
-                "Estoque insuficiente de insumo (açúcar) para o sabor ${sabor.nome}. Disponível: $it, Necessário: $quantidadeProduzida"
-            } else {
+            validarDisponivel(insumosSabor.sumOf { it.estoqueUnidades }, quantidadeProduzida) {
                 "Estoque insuficiente de insumo para o sabor ${sabor.nome}. Disponível: $it, Necessário: $quantidadeProduzida"
             }
+            deduzirFIFO(
+                items = insumosSabor,
+                quantidade = quantidadeProduzida,
+                getEstoque = { it.estoqueUnidades },
+                setEstoque = { item, novo -> item.estoqueUnidades = novo },
+                save = { materiaPrimaRepository.save(it) }
+            )
+        } else {
+            // Sabores normais: apenas matéria-prima do sabor
+            val insumos = materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
+            require(insumos.isNotEmpty()) {
+                throw RequisicaoInvalidaException("Nenhum estoque de insumo encontrado para o sabor ${sabor.nome}")
+            }
+            validarDisponivel(insumos.sumOf { it.estoqueUnidades }, quantidadeProduzida) {
+                "Estoque insuficiente de insumo para o sabor ${sabor.nome}. Disponível: $it, Necessário: $quantidadeProduzida"
+            }
+            deduzirFIFO(
+                items = insumos,
+                quantidade = quantidadeProduzida,
+                getEstoque = { it.estoqueUnidades },
+                setEstoque = { item, novo -> item.estoqueUnidades = novo },
+                save = { materiaPrimaRepository.save(it) }
+            )
         }
-        deduzirFIFO(
-            items = insumos,
-            quantidade = quantidadeProduzida,
-            getEstoque = { it.estoqueUnidades },
-            setEstoque = { item, novo -> item.estoqueUnidades = novo },
-            save = { materiaPrimaRepository.save(it) }
-        )
 
         // 2) Embalagens
         val embalagens = embalagemRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
@@ -360,15 +384,34 @@ class EstoqueService(
     @Transactional
     fun reverterDeducaoEstoque(sabor: Sabor, quantidadeProduzida: Int) {
         // 1) Insumos
-        val insumos = if (saborUsaAcucar(sabor)) {
-            materiaPrimaRepository.findBySaborIdIsNull()
-        } else {
-            materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
-        }
-
-        insumos.apply {
+        // Se o sabor usa açúcar, restaura TANTO o açúcar quanto a matéria-prima do sabor
+        if (saborUsaAcucar(sabor)) {
+            // 1a) Restaurar açúcar (sabor = null)
+            val acucar = materiaPrimaRepository.findBySaborIdIsNull()
             restaurarReverseFIFO(
-                items = this,
+                items = acucar,
+                quantidade = quantidadeProduzida,
+                getTotal = { it.totalUnidades },
+                getEstoque = { it.estoqueUnidades },
+                addEstoque = { item, delta -> item.estoqueUnidades += delta },
+                save = { materiaPrimaRepository.save(it) }
+            )
+
+            // 1b) Restaurar matéria-prima do próprio sabor
+            val insumosSabor = materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
+            restaurarReverseFIFO(
+                items = insumosSabor,
+                quantidade = quantidadeProduzida,
+                getTotal = { it.totalUnidades },
+                getEstoque = { it.estoqueUnidades },
+                addEstoque = { item, delta -> item.estoqueUnidades += delta },
+                save = { materiaPrimaRepository.save(it) }
+            )
+        } else {
+            // Sabores normais: apenas matéria-prima do sabor
+            val insumos = materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
+            restaurarReverseFIFO(
+                items = insumos,
                 quantidade = quantidadeProduzida,
                 getTotal = { it.totalUnidades },
                 getEstoque = { it.estoqueUnidades },

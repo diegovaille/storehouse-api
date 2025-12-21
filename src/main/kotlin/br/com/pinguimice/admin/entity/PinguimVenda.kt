@@ -30,6 +30,9 @@ class PinguimVenda(
     @Column(name = "usuario_id", nullable = false)
     var usuarioId: UUID,
 
+    @Column(name = "abater_estoque", nullable = false)
+    var abaterEstoque: Boolean = true,
+
     @OneToMany(mappedBy = "venda", cascade = [CascadeType.ALL], orphanRemoval = true)
     var itens: List<PinguimVendaItem> = mutableListOf()
 )

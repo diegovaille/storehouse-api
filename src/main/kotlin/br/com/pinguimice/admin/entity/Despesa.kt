@@ -27,6 +27,9 @@ class Despesa(
     @Column(name = "anexo_url", length = 255)
     var anexoUrl: String? = null,
 
+    @Column(columnDefinition = "TEXT")
+    var observacao: String? = null,
+
     @Column(name = "data_criacao", nullable = false)
     var dataCriacao: LocalDateTime = LocalDateTime.now()
 )

@@ -26,6 +26,10 @@ tags:
     description: Gerenciamento de despesas
   - name: Vendas
     description: Gerenciamento de vendas
+  - name: Relatórios
+    description: Relatórios gerenciais com análises e agregações
+  - name: Parâmetros de Cálculo
+    description: Gerenciamento de parâmetros/fórmulas usados nos cálculos de estoque
 
 paths:
   /api/pinguimice-admin/sabores:
@@ -525,11 +529,66 @@ paths:
                 $ref: '#/components/schemas/PinguimVendaResponse'
 
   /api/pinguimice-admin/vendas/{id}:
+    put:
+      tags:
+        - Vendas
+      summary: Editar venda
+      operationId: editarVenda
+      description: Edita uma venda existente com análise inteligente de mudança de estoque
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PinguimVendaRequest'
+      responses:
+        '200':
+          description: Venda editada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinguimVendaResponse'
+        '404':
+          description: Venda não encontrada
+
+  /api/pinguimice-admin/vendas/{id}/pagar:
+    patch:
+      tags:
+        - Vendas
+      summary: Marcar venda como paga
+      operationId: marcarVendaComoPaga
+      description: Atualiza totalPago para ser igual ao total, marcando a venda como completamente paga
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Venda marcada como paga com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinguimVendaResponse'
+        '404':
+          description: Venda não encontrada
+
+  /api/pinguimice-admin/vendas/{id}:
     delete:
       tags:
         - Vendas
       summary: Cancelar venda
       operationId: cancelarVenda
+      description: Cancela uma venda e restaura o estoque se necessário
       parameters:
         - name: id
           in: path
@@ -540,6 +599,261 @@ paths:
       responses:
         '204':
           description: Venda cancelada com sucesso
+
+  /api/pinguimice-admin/relatorios/despesas:
+    get:
+      tags:
+        - Relatórios
+      summary: Gerar relatório de despesas
+      operationId: gerarRelatorioDespesas
+      description: Retorna análise detalhada de despesas no período com agregações por categoria, semana e mês
+      parameters:
+        - name: inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de início (YYYY-MM-DD)
+          example: '2024-11-20'
+        - name: fim
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de fim (YYYY-MM-DD)
+          example: '2024-12-20'
+      responses:
+        '200':
+          description: Relatório de despesas gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioDespesasResponse'
+
+  /api/pinguimice-admin/relatorios/vendas:
+    get:
+      tags:
+        - Relatórios
+      summary: Gerar relatório de vendas
+      operationId: gerarRelatorioVendas
+      description: Retorna análise completa de vendas por sabor, região, período e top clientes
+      parameters:
+        - name: inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de início (YYYY-MM-DD)
+          example: '2024-11-20'
+        - name: fim
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de fim (YYYY-MM-DD)
+          example: '2024-12-20'
+      responses:
+        '200':
+          description: Relatório de vendas gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioVendasResponse'
+
+  /api/pinguimice-admin/relatorios/estoque:
+    get:
+      tags:
+        - Relatórios
+      summary: Gerar relatório de estoque
+      operationId: gerarRelatorioEstoque
+      description: Retorna snapshot atual do estoque de matéria-prima, embalagens e gelinhos com alertas de níveis baixos
+      responses:
+        '200':
+          description: Relatório de estoque gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioEstoqueResponse'
+
+  /api/pinguimice-admin/relatorios/producao:
+    get:
+      tags:
+        - Relatórios
+      summary: Gerar relatório de produção
+      operationId: gerarRelatorioProducao
+      description: Retorna análise de produção por sabor e período com médias diárias
+      parameters:
+        - name: inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de início (YYYY-MM-DD)
+          example: '2024-11-20'
+        - name: fim
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de fim (YYYY-MM-DD)
+          example: '2024-12-20'
+      responses:
+        '200':
+          description: Relatório de produção gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioProducaoResponse'
+
+  /api/pinguimice-admin/relatorios/lucro:
+    get:
+      tags:
+        - Relatórios
+      summary: Gerar relatório de lucro
+      operationId: gerarRelatorioLucro
+      description: Retorna análise financeira completa com vendas, despesas, lucro líquido e margens por período
+      parameters:
+        - name: inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de início (YYYY-MM-DD)
+          example: '2024-11-20'
+        - name: fim
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de fim (YYYY-MM-DD)
+          example: '2024-12-20'
+      responses:
+        '200':
+          description: Relatório de lucro gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioLucroResponse'
+
+  /api/pinguimice-admin/parametros-calculo:
+    get:
+      tags:
+        - Parâmetros de Cálculo
+      summary: Listar todos os parâmetros de cálculo
+      operationId: listarParametrosCalculo
+      description: Retorna todos os parâmetros/fórmulas usados nos cálculos de estoque e produção
+      responses:
+        '200':
+          description: Lista de parâmetros retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParametroCalculoResponse'
+    post:
+      tags:
+        - Parâmetros de Cálculo
+      summary: Criar novo parâmetro
+      operationId: criarParametroCalculo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParametroCalculoRequest'
+            examples:
+              parametroDecimal:
+                summary: Parâmetro com valor decimal
+                value:
+                  chave: 'UNIDADES_POR_PACOTE'
+                  valor: 4.4
+                  descricao: 'Quantidade de unidades por pacote'
+              parametroInteiro:
+                summary: Parâmetro com valor inteiro
+                value:
+                  chave: 'TOTAL_UNIDADE_POR_KG'
+                  valor: 266
+                  descricao: 'Total de unidades produzidas por KG'
+      responses:
+        '201':
+          description: Parâmetro criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParametroCalculoResponse'
+
+  /api/pinguimice-admin/parametros-calculo/{chave}:
+    get:
+      tags:
+        - Parâmetros de Cálculo
+      summary: Buscar parâmetro por chave
+      operationId: buscarParametroPorChave
+      parameters:
+        - name: chave
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 'TOTAL_UNIDADE_POR_KG'
+      responses:
+        '200':
+          description: Parâmetro encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParametroCalculoResponse'
+        '404':
+          description: Parâmetro não encontrado
+    put:
+      tags:
+        - Parâmetros de Cálculo
+      summary: Atualizar parâmetro
+      operationId: atualizarParametroCalculo
+      description: Atualiza o valor de um parâmetro. Aceita valores decimais (ex 4.4) ou inteiros (ex 266)
+      parameters:
+        - name: chave
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 'UNIDADES_POR_PACOTE'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParametroCalculoRequest'
+            examples:
+              atualizarDecimal:
+                summary: Atualizar com valor decimal
+                value:
+                  chave: 'UNIDADES_POR_PACOTE'
+                  valor: 4.5
+                  descricao: 'Quantidade de unidades por pacote (atualizado)'
+              atualizarInteiro:
+                summary: Atualizar com valor inteiro
+                value:
+                  chave: 'TOTAL_UNIDADE_POR_KG'
+                  valor: 280
+                  descricao: 'Total de unidades por KG (nova máquina)'
+      responses:
+        '200':
+          description: Parâmetro atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParametroCalculoResponse'
+        '404':
+          description: Parâmetro não encontrado
 
 components:
   schemas:
@@ -826,6 +1140,9 @@ components:
         dataPagamento:
           type: string
           format: date
+        observacao:
+          type: string
+          description: Observações sobre a despesa (texto longo)
 
     DespesaResponse:
       type: object
@@ -845,6 +1162,9 @@ components:
         anexoUrl:
           type: string
           format: uri
+        observacao:
+          type: string
+          description: Observações sobre a despesa
         dataCriacao:
           type: string
           format: date-time
@@ -872,6 +1192,10 @@ components:
         totalPago:
           type: number
           format: decimal
+        abaterEstoque:
+          type: boolean
+          default: true
+          description: Se true, deduz do estoque de gelinhos ao registrar/editar a venda
 
     PinguimVendaItemRequest:
       type: object
@@ -906,6 +1230,9 @@ components:
           type: string
         vendedor:
           type: string
+        abaterEstoque:
+          type: boolean
+          description: Indica se a venda abateu do estoque
         itens:
           type: array
           items:
@@ -918,3 +1245,479 @@ components:
           type: string
         quantidade:
           type: integer
+
+    # ==================== Schemas de Relatórios ====================
+
+    PeriodoRelatorio:
+      type: object
+      properties:
+        inicio:
+          type: string
+          format: date
+          example: '2024-11-20'
+        fim:
+          type: string
+          format: date
+          example: '2024-12-20'
+
+    # Relatório de Despesas
+    RelatorioDespesasResponse:
+      type: object
+      properties:
+        periodo:
+          $ref: '#/components/schemas/PeriodoRelatorio'
+        totalDespesas:
+          type: number
+          format: decimal
+          example: 50000.00
+        totalPago:
+          type: number
+          format: decimal
+          example: 45000.00
+        totalPendente:
+          type: number
+          format: decimal
+          example: 5000.00
+        despesasPorCategoria:
+          type: array
+          items:
+            $ref: '#/components/schemas/DespesaPorCategoriaItem'
+        despesasPorSemana:
+          type: array
+          items:
+            $ref: '#/components/schemas/DespesaPorPeriodoItem'
+          description: Agregação semanal (formato YYYY-Wnn)
+        despesasPorMes:
+          type: array
+          items:
+            $ref: '#/components/schemas/DespesaPorPeriodoItem'
+        despesasDetalhadas:
+          type: array
+          items:
+            $ref: '#/components/schemas/DespesaDetalhadaItem'
+          description: Últimas 50 despesas detalhadas
+
+    DespesaPorCategoriaItem:
+      type: object
+      properties:
+        categoria:
+          type: string
+          example: 'FORNECEDOR'
+        valor:
+          type: number
+          format: decimal
+        percentual:
+          type: number
+          format: double
+          description: Percentual do total (0-100)
+        quantidade:
+          type: integer
+
+    DespesaPorPeriodoItem:
+      type: object
+      properties:
+        periodo:
+          type: string
+          description: 'YYYY-MM para mês ou YYYY-Wnn para semana ou YYYY-MM-DD para dia'
+          example: '2024-W52'
+        valor:
+          type: number
+          format: decimal
+        quantidade:
+          type: integer
+
+    DespesaDetalhadaItem:
+      type: object
+      properties:
+        descricao:
+          type: string
+        valor:
+          type: number
+          format: decimal
+        dataPagamento:
+          type: string
+          format: date
+          nullable: true
+        dataVencimento:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          enum: [PAGO, PENDENTE, VENCIDO]
+
+    # Relatório de Vendas
+    RelatorioVendasResponse:
+      type: object
+      properties:
+        periodo:
+          $ref: '#/components/schemas/PeriodoRelatorio'
+        totalVendas:
+          type: number
+          format: decimal
+          example: 80000.00
+        totalRecebido:
+          type: number
+          format: decimal
+          example: 75000.00
+        totalPendente:
+          type: number
+          format: decimal
+          example: 5000.00
+        quantidadeVendas:
+          type: integer
+          example: 320
+        ticketMedio:
+          type: number
+          format: decimal
+          example: 250.00
+        vendasPorSabor:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendaPorSaborItem'
+        vendasPorRegiao:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendaPorRegiaoItem'
+        vendasPorSemana:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendaPorPeriodoItem'
+          description: Agregação semanal (formato YYYY-Wnn) - RECOMENDADO para 30 dias
+        vendasPorDia:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendaPorPeriodoItem'
+        topClientes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClienteItem'
+          description: Top 10 clientes
+
+    VendaPorSaborItem:
+      type: object
+      properties:
+        sabor:
+          type: string
+        quantidade:
+          type: integer
+        valorTotal:
+          type: number
+          format: decimal
+        percentualQuantidade:
+          type: number
+          format: double
+          description: Percentual em quantidade (0-100)
+        percentualValor:
+          type: number
+          format: double
+          description: Percentual em valor (0-100)
+
+    VendaPorRegiaoItem:
+      type: object
+      properties:
+        regiao:
+          type: string
+        quantidade:
+          type: integer
+        valorTotal:
+          type: number
+          format: decimal
+        percentual:
+          type: number
+          format: double
+          description: Percentual do total (0-100)
+
+    VendaPorPeriodoItem:
+      type: object
+      properties:
+        periodo:
+          type: string
+          description: 'YYYY-MM-DD para dia ou YYYY-Wnn para semana'
+          example: '2024-W52'
+        valorTotal:
+          type: number
+          format: decimal
+        quantidadeVendas:
+          type: integer
+
+    ClienteItem:
+      type: object
+      properties:
+        cliente:
+          type: string
+        totalCompras:
+          type: number
+          format: decimal
+        quantidadeCompras:
+          type: integer
+
+    # Relatório de Estoque
+    RelatorioEstoqueResponse:
+      type: object
+      properties:
+        dataGeracao:
+          type: string
+          format: date-time
+          example: '2024-12-20 16:30:00'
+        estoqueMateriaPrima:
+          type: array
+          items:
+            $ref: '#/components/schemas/EstoqueMateriaPrimaItem'
+        estoqueEmbalagem:
+          type: array
+          items:
+            $ref: '#/components/schemas/EstoqueEmbalagemItem'
+        estoqueGelinho:
+          type: array
+          items:
+            $ref: '#/components/schemas/EstoqueGelinhoItem'
+        valorTotalEstoque:
+          type: number
+          format: decimal
+          description: Valor total de matéria-prima e embalagens em estoque
+        alertasEstoqueBaixo:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertaEstoqueItem'
+          description: Alertas de itens com estoque abaixo de 20%
+
+    EstoqueMateriaPrimaItem:
+      type: object
+      properties:
+        nome:
+          type: string
+        sabor:
+          type: string
+          nullable: true
+        estoqueUnidades:
+          type: integer
+        totalUnidades:
+          type: integer
+        percentualDisponivel:
+          type: number
+          format: double
+          description: Percentual disponível (0-100)
+        precoPorUnidade:
+          type: number
+          format: decimal
+        valorTotal:
+          type: number
+          format: decimal
+          description: Valor do estoque atual (estoqueUnidades * precoPorUnidade)
+
+    EstoqueEmbalagemItem:
+      type: object
+      properties:
+        nome:
+          type: string
+        sabor:
+          type: string
+          nullable: true
+        estoqueUnidades:
+          type: integer
+        totalUnidades:
+          type: integer
+        percentualDisponivel:
+          type: number
+          format: double
+          description: Percentual disponível (0-100)
+        precoPorUnidade:
+          type: number
+          format: decimal
+        valorTotal:
+          type: number
+          format: decimal
+
+    EstoqueGelinhoItem:
+      type: object
+      properties:
+        sabor:
+          type: string
+        quantidade:
+          type: integer
+
+    AlertaEstoqueItem:
+      type: object
+      properties:
+        tipo:
+          type: string
+          enum: [MATERIA_PRIMA, EMBALAGEM]
+        nome:
+          type: string
+        sabor:
+          type: string
+          nullable: true
+        estoqueAtual:
+          type: integer
+        nivelCritico:
+          type: string
+          enum: [CRITICO, BAIXO]
+          description: CRITICO < 10%, BAIXO < 20%
+
+    # Relatório de Produção
+    RelatorioProducaoResponse:
+      type: object
+      properties:
+        periodo:
+          $ref: '#/components/schemas/PeriodoRelatorio'
+        totalProducao:
+          type: integer
+          description: Total de unidades produzidas
+        producaoPorSabor:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProducaoPorSaborItem'
+        producaoPorDia:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProducaoPorPeriodoItem'
+        mediaProducaoDiaria:
+          type: number
+          format: double
+        diasComProducao:
+          type: integer
+
+    ProducaoPorSaborItem:
+      type: object
+      properties:
+        sabor:
+          type: string
+        quantidade:
+          type: integer
+        percentual:
+          type: number
+          format: double
+          description: Percentual do total (0-100)
+        vezes:
+          type: integer
+          description: Número de registros de produção
+
+    ProducaoPorPeriodoItem:
+      type: object
+      properties:
+        periodo:
+          type: string
+          format: date
+          example: '2024-12-20'
+        quantidade:
+          type: integer
+        quantidadeProducoes:
+          type: integer
+          description: Número de produções nesse dia
+
+    # Relatório de Lucro
+    RelatorioLucroResponse:
+      type: object
+      properties:
+        periodo:
+          $ref: '#/components/schemas/PeriodoRelatorio'
+        totalVendas:
+          type: number
+          format: decimal
+          description: Total de vendas pagas
+        totalDespesas:
+          type: number
+          format: decimal
+          description: Total de despesas pagas
+        lucroLiquido:
+          type: number
+          format: decimal
+        margemLucro:
+          type: number
+          format: double
+          description: Margem de lucro em percentual (0-100)
+        lucroPorMes:
+          type: array
+          items:
+            $ref: '#/components/schemas/LucroPorPeriodoItem'
+        resumoFinanceiro:
+          $ref: '#/components/schemas/ResumoFinanceiro'
+
+    LucroPorPeriodoItem:
+      type: object
+      properties:
+        periodo:
+          type: string
+          description: Ano-Mês (YYYY-MM)
+          example: '2024-12'
+        vendas:
+          type: number
+          format: decimal
+        despesas:
+          type: number
+          format: decimal
+        lucro:
+          type: number
+          format: decimal
+        margemLucro:
+          type: number
+          format: double
+          description: Margem de lucro em percentual (0-100)
+
+    ResumoFinanceiro:
+      type: object
+      properties:
+        receitaMedia:
+          type: number
+          format: decimal
+        despesaMedia:
+          type: number
+          format: decimal
+        lucroMedio:
+          type: number
+          format: decimal
+        melhorMes:
+          $ref: '#/components/schemas/MelhorPiorMesItem'
+        piorMes:
+          $ref: '#/components/schemas/MelhorPiorMesItem'
+
+    MelhorPiorMesItem:
+      type: object
+      properties:
+        mes:
+          type: string
+          example: '2024-12'
+        valor:
+          type: number
+          format: decimal
+
+    # Parâmetros de Cálculo
+    ParametroCalculoRequest:
+      type: object
+      required:
+        - chave
+        - valor
+      properties:
+        chave:
+          type: string
+          example: 'UNIDADES_POR_PACOTE'
+          description: Chave única do parâmetro
+        valor:
+          type: number
+          format: double
+          example: 4.4
+          description: Valor numérico do parâmetro (aceita decimais)
+        descricao:
+          type: string
+          example: 'Quantidade de unidades por pacote'
+          description: Descrição do parâmetro
+
+    ParametroCalculoResponse:
+      type: object
+      properties:
+        chave:
+          type: string
+          example: 'UNIDADES_POR_PACOTE'
+        valor:
+          type: number
+          format: double
+          example: 4.4
+          description: Valor numérico (pode ser decimal como 4.4 ou inteiro como 266)
+        descricao:
+          type: string
+          example: 'Quantidade de unidades por pacote'
+        dataAtualizacao:
+          type: string
+          format: date-time
+          example: '2024-12-20T15:30:00'

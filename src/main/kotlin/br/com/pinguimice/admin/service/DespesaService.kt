@@ -43,14 +43,15 @@ class DespesaService(
             request.anexoUrl
         }
 
-        val despesa = Despesa(
-            id = despesaId,
-            descricao = request.descricao,
-            valor = request.valor,
-            dataVencimento = request.dataVencimento?.let { LocalDate.parse(it) },
-            dataPagamento = request.dataPagamento?.let { LocalDate.parse(it) },
-            anexoUrl = anexoUrl
-        )
+    val despesa = Despesa(
+        id = despesaId,
+        descricao = request.descricao,
+        valor = request.valor,
+        dataVencimento = request.dataVencimento?.let { LocalDate.parse(it) },
+        dataPagamento = request.dataPagamento?.let { LocalDate.parse(it) },
+        anexoUrl = anexoUrl,
+        observacao = request.observacao
+    )
 
         return despesaRepository.save(despesa).toResponse()
     }
@@ -72,6 +73,7 @@ class DespesaService(
         despesa.dataVencimento = request.dataVencimento?.let { LocalDate.parse(it) }
         despesa.dataPagamento = request.dataPagamento?.let { LocalDate.parse(it) }
         despesa.anexoUrl = anexoUrl
+        despesa.observacao = request.observacao
 
         return despesaRepository.save(despesa).toResponse()
     }

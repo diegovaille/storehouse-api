@@ -13,7 +13,6 @@ import br.com.storehouse.data.repository.UsuarioRepository
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
 import br.com.storehouse.exceptions.EstadoInvalidoException
 import br.com.storehouse.logging.LogCall
-import br.com.storehouse.service.DefaultStorageService
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -45,24 +44,27 @@ class PinguimVendaService(
             totalPago = request.totalPago,
             cliente = request.cliente,
             regiao = regiao,
-            usuarioId = usuario.id
+            usuarioId = usuario.id,
+            abaterEstoque = request.abaterEstoque
         )
 
         val itens = request.itens.map { itemRequest ->
             val sabor = saborRepository.findByIdOrNull(itemRequest.saborId)
                 ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
 
-            // Atualizar estoque
-            val estoque = estoqueRepository.findBySaborId(sabor.id)
-                ?: throw EntidadeNaoEncontradaException("Estoque não encontrado para o sabor ${sabor.nome}")
+            // Atualizar estoque apenas se abaterEstoque for true
+            if (request.abaterEstoque) {
+                val estoque = estoqueRepository.findBySaborId(sabor.id)
+                    ?: throw EntidadeNaoEncontradaException("Estoque não encontrado para o sabor ${sabor.nome}")
 
-            if (estoque.quantidade < itemRequest.quantidade) {
-                throw EstadoInvalidoException("Estoque insuficiente para o sabor ${sabor.nome}")
+                if (estoque.quantidade < itemRequest.quantidade) {
+                    throw EstadoInvalidoException("Estoque insuficiente para o sabor ${sabor.nome}")
+                }
+
+                estoque.quantidade -= itemRequest.quantidade
+                estoque.ultimaAtualizacao = LocalDateTime.now()
+                estoqueRepository.save(estoque)
             }
-
-            estoque.quantidade -= itemRequest.quantidade
-            estoque.ultimaAtualizacao = LocalDateTime.now()
-            estoqueRepository.save(estoque)
 
             PinguimVendaItem(
                 venda = venda,
@@ -99,17 +101,149 @@ class PinguimVendaService(
         val venda = vendaRepository.findByIdOrNull(id)
             ?: throw EntidadeNaoEncontradaException("Venda não encontrada")
 
-        // Restaurar estoque
-        venda.itens.forEach { item ->
-            val estoque = estoqueRepository.findBySaborId(item.sabor.id)
-            if (estoque != null) {
-                estoque.quantidade += item.quantidade
+        // Restaurar estoque apenas se foi abatido na criação
+        if (venda.abaterEstoque) {
+            venda.itens.forEach { item ->
+                val estoque = estoqueRepository.findBySaborId(item.sabor.id)
+                if (estoque != null) {
+                    estoque.quantidade += item.quantidade
+                    estoque.ultimaAtualizacao = LocalDateTime.now()
+                    estoqueRepository.save(estoque)
+                }
+            }
+        }
+
+        vendaRepository.delete(venda)
+    }
+
+    @LogCall
+    @Transactional
+    fun editarVenda(id: UUID, request: PinguimVendaRequest, emailUsuario: String): PinguimVendaResponse {
+        val usuario = usuarioRepository.findByEmail(emailUsuario)
+            ?: throw EntidadeNaoEncontradaException("Usuário não encontrado")
+
+        val vendaExistente = vendaRepository.findByIdOrNull(id)
+            ?: throw EntidadeNaoEncontradaException("Venda não encontrada")
+
+        val regiao = regiaoRepository.findByIdOrNull(request.regiaoId)
+            ?: throw EntidadeNaoEncontradaException("Região não encontrada")
+
+        // Análise de mudança de estoque
+        val abaterEstoqueAntes = vendaExistente.abaterEstoque
+        val abaterEstoqueAgora = request.abaterEstoque
+
+        // Se estava abatendo e agora não abate mais, restaurar o estoque anterior
+        if (abaterEstoqueAntes && !abaterEstoqueAgora) {
+            vendaExistente.itens.forEach { item ->
+                val estoque = estoqueRepository.findBySaborId(item.sabor.id)
+                if (estoque != null) {
+                    estoque.quantidade += item.quantidade
+                    estoque.ultimaAtualizacao = LocalDateTime.now()
+                    estoqueRepository.save(estoque)
+                }
+            }
+        }
+
+        // Se não estava abatendo e agora vai abater, deduzir o estoque
+        if (!abaterEstoqueAntes && abaterEstoqueAgora) {
+            request.itens.forEach { itemRequest ->
+                val sabor = saborRepository.findByIdOrNull(itemRequest.saborId)
+                    ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
+
+                val estoque = estoqueRepository.findBySaborId(sabor.id)
+                    ?: throw EntidadeNaoEncontradaException("Estoque não encontrado para o sabor ${sabor.nome}")
+
+                if (estoque.quantidade < itemRequest.quantidade) {
+                    throw EstadoInvalidoException("Estoque insuficiente para o sabor ${sabor.nome}")
+                }
+
+                estoque.quantidade -= itemRequest.quantidade
                 estoque.ultimaAtualizacao = LocalDateTime.now()
                 estoqueRepository.save(estoque)
             }
         }
 
-        vendaRepository.delete(venda)
+        // Se continuou abatendo, ajustar diferenças de quantidade
+        if (abaterEstoqueAntes && abaterEstoqueAgora) {
+            // Criar mapa de quantidades antigas por sabor
+            val quantidadesAntigas = vendaExistente.itens.associate { it.sabor.id to it.quantidade }
+            val quantidadesNovas = request.itens.associate { it.saborId to it.quantidade }
+
+            // Restaurar quantidades dos sabores removidos ou com quantidade reduzida
+            quantidadesAntigas.forEach { (saborId, quantidadeAntiga) ->
+                val quantidadeNova = quantidadesNovas[saborId] ?: 0
+                val diferenca = quantidadeAntiga - quantidadeNova
+
+                if (diferenca > 0) {
+                    val estoque = estoqueRepository.findBySaborId(saborId)
+                    if (estoque != null) {
+                        estoque.quantidade += diferenca
+                        estoque.ultimaAtualizacao = LocalDateTime.now()
+                        estoqueRepository.save(estoque)
+                    }
+                }
+            }
+
+            // Deduzir quantidades dos sabores novos ou com quantidade aumentada
+            quantidadesNovas.forEach { (saborId, quantidadeNova) ->
+                val quantidadeAntiga = quantidadesAntigas[saborId] ?: 0
+                val diferenca = quantidadeNova - quantidadeAntiga
+
+                if (diferenca > 0) {
+                    val sabor = saborRepository.findByIdOrNull(saborId)
+                        ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
+
+                    val estoque = estoqueRepository.findBySaborId(saborId)
+                        ?: throw EntidadeNaoEncontradaException("Estoque não encontrado para o sabor ${sabor.nome}")
+
+                    if (estoque.quantidade < diferenca) {
+                        throw EstadoInvalidoException("Estoque insuficiente para o sabor ${sabor.nome}")
+                    }
+
+                    estoque.quantidade -= diferenca
+                    estoque.ultimaAtualizacao = LocalDateTime.now()
+                    estoqueRepository.save(estoque)
+                }
+            }
+        }
+
+        // Atualizar dados da venda
+        vendaExistente.total = request.total
+        vendaExistente.totalPago = request.totalPago
+        vendaExistente.cliente = request.cliente
+        vendaExistente.regiao = regiao
+        vendaExistente.abaterEstoque = request.abaterEstoque
+
+        // Atualizar itens
+        vendaExistente.itens = request.itens.map { itemRequest ->
+            val sabor = saborRepository.findByIdOrNull(itemRequest.saborId)
+                ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
+
+            PinguimVendaItem(
+                venda = vendaExistente,
+                sabor = sabor,
+                quantidade = itemRequest.quantidade
+            )
+        }
+
+        val vendaSalva = vendaRepository.save(vendaExistente)
+        return vendaSalva.toResponse(usuario.username ?: "Desconhecido")
+    }
+
+    @LogCall
+    @Transactional
+    fun marcarComoPaga(id: UUID, emailUsuario: String): PinguimVendaResponse {
+        val usuario = usuarioRepository.findByEmail(emailUsuario)
+            ?: throw EntidadeNaoEncontradaException("Usuário não encontrado")
+
+        val venda = vendaRepository.findByIdOrNull(id)
+            ?: throw EntidadeNaoEncontradaException("Venda não encontrada")
+
+        // Marca como paga igualando totalPago ao total
+        venda.totalPago = venda.total
+
+        val vendaSalva = vendaRepository.save(venda)
+        return vendaSalva.toResponse(usuario.username ?: "Desconhecido")
     }
 
     private fun PinguimVenda.toResponse(nomeVendedor: String): PinguimVendaResponse {
@@ -121,6 +255,7 @@ class PinguimVendaService(
             cliente = this.cliente,
             regiao = this.regiao.nome,
             vendedor = nomeVendedor,
+            abaterEstoque = this.abaterEstoque,
             itens = this.itens.map {
                 PinguimVendaItemResponse(
                     sabor = it.sabor.nome,

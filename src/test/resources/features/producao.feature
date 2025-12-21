@@ -9,9 +9,10 @@ Feature: Produção e Dedução de Estoque FIFO
     And que existe estoque de "Saco Transparente" suficiente
     And que existe um sabor "Coco"
     And que existe um sabor "Maçã Verde"
+    And que existe estoque de matéria prima para "Coco" criado hoje com 500 unidades
+    And que existe estoque de matéria prima para "Maçã Verde" criado hoje com 500 unidades
     And que existe estoque de embalagem para "Coco" com 500 unidades
     And que existe estoque de embalagem para "Maçã Verde" com 500 unidades
-    And que existe estoque de "Plástico" suficiente
 
   Scenario: Produção com Dedução FIFO
     When eu registro uma produção de 150 gelinhos de "Morango" com dedução de estoque

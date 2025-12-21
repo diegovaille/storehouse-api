@@ -35,6 +35,25 @@ class PinguimVendaController(
         return vendaService.listarVendas(inicio, fim)
     }
 
+    @PutMapping("/{id}")
+    fun editarVenda(
+        @PathVariable id: UUID,
+        @RequestBody request: PinguimVendaRequest,
+        @AuthenticationPrincipal usuario: UsuarioAutenticado
+    ): ResponseEntity<PinguimVendaResponse> {
+        val venda = vendaService.editarVenda(id, request, usuario.email)
+        return ResponseEntity.ok(venda)
+    }
+
+    @PatchMapping("/{id}/pagar")
+    fun marcarComoPaga(
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal usuario: UsuarioAutenticado
+    ): ResponseEntity<PinguimVendaResponse> {
+        val venda = vendaService.marcarComoPaga(id, usuario.email)
+        return ResponseEntity.ok(venda)
+    }
+
     @DeleteMapping("/{id}")
     fun cancelarVenda(
         @PathVariable id: UUID
