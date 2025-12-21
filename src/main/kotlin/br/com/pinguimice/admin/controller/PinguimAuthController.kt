@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/pinguimice-admin/auth")
+@RequestMapping("/api/pinguim-admin/auth")
 class PinguimAuthController(
     private val jwtUtils: JwtUtils,
     private val usuarioService: UsuarioService

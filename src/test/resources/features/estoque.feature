@@ -1,7 +1,11 @@
 Feature: Gestão de Estoque e Cálculos
 
   Background:
-    Given que eu sou um usuário autenticado
+    Given que existe um usuário "admin" com email "admin@pinguimice.com.br" e senha "123456"
+    And que existe uma organização "Pinguim Ice" com CNPJ "60774613000108"
+    And que o usuário "admin" pertence à organização "Pinguim Ice" com perfil "ADMIN"
+    And que existe uma filial "Matriz" vinculada à organização "Pinguim Ice"
+    And que eu estou autenticado como "admin@pinguimice.com.br"
     And que existe um sabor "Morango"
 
   Scenario: Adicionar Estoque de Matéria Prima (Caixa)

@@ -1,6 +1,7 @@
 package br.com.storehouse.cucumber
 
 import br.com.pinguimice.admin.model.ProducaoRequest
+import br.com.storehouse.data.SharedTestData
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
@@ -12,7 +13,7 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
 
-class ProducaoSteps : BaseSteps() {
+class ProducaoSteps(private val sharedTestData: SharedTestData) : BaseSteps() {
 
     private var lastProducaoId: UUID? = null
 
@@ -28,7 +29,8 @@ class ProducaoSteps : BaseSteps() {
             precoEntrada = BigDecimal.TEN,
             totalUnidades = qtd,
             precoPorUnidade = BigDecimal.ONE,
-            estoqueUnidades = qtd
+            estoqueUnidades = qtd,
+            filial = sharedTestData.filial!!
         )
         mp.dataCriacao = LocalDateTime.now().minusDays(1)
         materiaPrimaRepository.save(mp)
@@ -45,7 +47,8 @@ class ProducaoSteps : BaseSteps() {
             precoEntrada = BigDecimal.TEN,
             totalUnidades = qtd,
             precoPorUnidade = BigDecimal.ONE,
-            estoqueUnidades = qtd
+            estoqueUnidades = qtd,
+            filial = sharedTestData.filial!!
         )
         materiaPrimaRepository.save(mp)
     }
@@ -60,7 +63,8 @@ class ProducaoSteps : BaseSteps() {
             precoKg = BigDecimal.TEN,
             totalUnidades = qtd,
             precoPorUnidade = BigDecimal.ONE,
-            estoqueUnidades = qtd
+            estoqueUnidades = qtd,
+            filial = sharedTestData.filial!!
         )
         embalagemRepository.save(emb)
     }
@@ -74,7 +78,8 @@ class ProducaoSteps : BaseSteps() {
             unidadesPorItem = 50,
             totalUnidades = 5000,
             precoPorUnidade = BigDecimal.ONE,
-            estoqueUnidades = 5000
+            estoqueUnidades = 5000,
+            filial = sharedTestData.filial!!
         )
         outrosRepository.save(outros)
     }
@@ -87,7 +92,8 @@ class ProducaoSteps : BaseSteps() {
                 saborId = sabor.id,
                 quantidadeProduzida = qtd,
                 deduzirEstoque = true
-            )
+            ),
+            filialId = sharedTestData.filial!!.id
         )
     }
 
@@ -119,7 +125,8 @@ class ProducaoSteps : BaseSteps() {
                     saborId = sabor.id,
                     quantidadeProduzida = qtd,
                     deduzirEstoque = true
-                )
+                ),
+                filialId = sharedTestData.filial!!.id
             )
         } catch (e: Exception) {
             lastException = e
@@ -135,10 +142,10 @@ class ProducaoSteps : BaseSteps() {
 
     @When("eu excluo a última produção registrada")
     fun eu_excluo_ultima_producao() {
-        val ultimaProducao = producaoRepository.findAllByOrderByDataProducaoDesc().firstOrNull()
+        val ultimaProducao = producaoRepository.findAllByFilialIdOrderByDataProducaoDesc(sharedTestData.filial!!.id).firstOrNull()
             ?: fail("Nenhuma produção encontrada")
         lastProducaoId = ultimaProducao.id
-        producaoService.excluirProducao(ultimaProducao.id)
+        producaoService.excluirProducao(ultimaProducao.id, sharedTestData.filial!!.id)
     }
 
     @Then("o estoque de gelinho de {string} deve ser {int}")
@@ -160,14 +167,15 @@ class ProducaoSteps : BaseSteps() {
             precoEntrada = BigDecimal.TEN,
             totalUnidades = unidades,
             precoPorUnidade = BigDecimal.ONE,
-            estoqueUnidades = unidades
+            estoqueUnidades = unidades,
+            filial = sharedTestData.filial!!
         )
         materiaPrimaRepository.save(mp)
     }
 
     @Then("o estoque de açúcar deve ser {int}")
     fun estoque_acucar_deve_ser(qtd: Int) {
-        val mps = materiaPrimaRepository.findBySaborIdIsNull().sortedBy { it.dataCriacao }
+        val mps = materiaPrimaRepository.findByFilialIdAndSaborIdIsNull(sharedTestData.filial!!.id).sortedBy { it.dataCriacao }
         // Sum available estoqueUnidades across sugar entries
         val total = mps.sumOf { it.estoqueUnidades }
         assertEquals(qtd, total)

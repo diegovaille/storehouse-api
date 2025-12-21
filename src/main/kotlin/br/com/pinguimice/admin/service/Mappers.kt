@@ -47,6 +47,7 @@ fun Sabor.toResponse() = SaborResponse(
     nome = this.nome,
     corHex = this.corHex,
     ativo = this.ativo,
+    usaAcucar = this.usaAcucar,
     dataCriacao = this.dataCriacao
 )
 

@@ -6,10 +6,13 @@ import java.time.LocalDateTime
 import java.util.*
 
 interface ProducaoRepository : JpaRepository<Producao, UUID> {
-    fun findByDataProducaoBetweenOrderByDataProducaoDesc(
+    fun findByFilialIdAndDataProducaoBetweenOrderByDataProducaoDesc(
+        filialId: UUID,
         inicio: LocalDateTime,
         fim: LocalDateTime
     ): List<Producao>
-    
-    fun findAllByOrderByDataProducaoDesc(): List<Producao>
+
+    fun findAllByFilialIdOrderByDataProducaoDesc(filialId: UUID): List<Producao>
+
+    fun findByIdAndFilialId(id: UUID, filialId: UUID): Producao?
 }

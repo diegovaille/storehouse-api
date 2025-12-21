@@ -2,19 +2,20 @@ package br.com.storehouse.cucumber
 
 import br.com.pinguimice.admin.model.RegiaoVendaRequest
 import br.com.pinguimice.admin.model.RegiaoVendaResponse
+import br.com.storehouse.data.SharedTestData
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 
-class RegiaoSteps : BaseSteps() {
+class RegiaoSteps(private val sharedTestData: SharedTestData) : BaseSteps() {
 
     private var lastRegiaoResponse: RegiaoVendaResponse? = null
 
     @When("eu crio uma região com nome {string}")
     fun eu_crio_uma_regiao(nome: String) {
-        lastRegiaoResponse = regiaoVendaService.criarRegiao(RegiaoVendaRequest(nome = nome))
+        lastRegiaoResponse = regiaoVendaService.criarRegiao(RegiaoVendaRequest(nome = nome), sharedTestData.filial!!.id)
     }
 
     @Then("a região {string} deve ser listada com sucesso")
@@ -25,7 +26,7 @@ class RegiaoSteps : BaseSteps() {
 
     @Given("que existe uma região {string}")
     fun que_existe_uma_regiao(nome: String) {
-        lastRegiaoResponse = regiaoVendaService.criarRegiao(RegiaoVendaRequest(nome = nome))
+        lastRegiaoResponse = regiaoVendaService.criarRegiao(RegiaoVendaRequest(nome = nome), sharedTestData.filial!!.id)
     }
 
     @When("eu atualizo o nome da região {string} para {string}")

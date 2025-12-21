@@ -1,5 +1,6 @@
 package br.com.pinguimice.admin.entity
 
+import br.com.storehouse.data.entities.Filial
 import jakarta.persistence.*
 import java.time.LocalDateTime
 import java.util.*
@@ -22,6 +23,10 @@ class Producao(
 
     @Column(name = "data_producao", nullable = false)
     var dataProducao: LocalDateTime = LocalDateTime.now(),
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "filial_id", nullable = false)
+    var filial: Filial,
 
     @Column(columnDefinition = "TEXT")
     var observacoes: String? = null

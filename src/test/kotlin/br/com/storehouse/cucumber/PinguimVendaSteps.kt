@@ -27,9 +27,9 @@ class PinguimVendaSteps(
     private var lastVendaResponse: ResponseEntity<PinguimVendaResponse>? = null
     private var lastError: Exception? = null
 
-    @When("eu registro uma venda para a região {string} com os seguintes itens:")
-    fun euRegistroUmaVendaParaARegiaoComOsSeguintesItens(nomeRegiao: String, dataTable: DataTable) {
-        val regiao = regiaoVendaRepository.findAll().first { it.nome == nomeRegiao }
+    @When("eu registro uma venda para o cliente {string} com os seguintes itens:")
+    fun euRegistroUmaVendaParaARegiaoComOsSeguintesItens(nomeCliente: String, dataTable: DataTable) {
+        val cliente = clienteRepository.findAll().first { it.nome == nomeCliente }
         val itens = dataTable.asMaps().map { row ->
             val sabor = saborRepository.findAll().first { it.nome == row["Sabor"] }
             PinguimVendaItemRequest(
@@ -39,8 +39,7 @@ class PinguimVendaSteps(
         }
 
         val request = PinguimVendaRequest(
-            regiaoId = regiao.id,
-            cliente = "Cliente Teste",
+            clienteId = cliente.id,
             itens = itens,
             total = BigDecimal("100.00"),
             totalPago = BigDecimal("100.00")
@@ -66,9 +65,9 @@ class PinguimVendaSteps(
         assertEquals(quantidadeEsperada, estoque.quantidade)
     }
 
-    @When("eu tento registrar uma venda para a região {string} com os seguintes itens:")
-    fun euTentoRegistrarUmaVendaParaARegiaoComOsSeguintesItens(nomeRegiao: String, dataTable: DataTable) {
-        euRegistroUmaVendaParaARegiaoComOsSeguintesItens(nomeRegiao, dataTable)
+    @When("eu tento registrar uma venda para o cliente {string} com os seguintes itens:")
+    fun euTentoRegistrarUmaVendaParaOClienteComOsSeguintesItens(nomeCliente: String, dataTable: DataTable) {
+        euRegistroUmaVendaParaARegiaoComOsSeguintesItens(nomeCliente, dataTable)
     }
 
     @Then("a venda não deve ser registrada")
@@ -85,14 +84,13 @@ class PinguimVendaSteps(
         assert(lastError!!.message?.contains("Estoque insuficiente") == true)
     }
 
-    @Given("que foi registrada uma venda para a região {string} com {int} gelinhos de {string}")
-    fun queFoiRegistradaUmaVendaParaARegiaoComGelinhosDe(nomeRegiao: String, quantidade: Int, nomeSabor: String) {
-        val regiao = regiaoVendaRepository.findAll().first { it.nome == nomeRegiao }
+    @Given("que foi registrada uma venda para o cliente {string} com {int} gelinhos de {string}")
+    fun queFoiRegistradaUmaVendaParaOClienteComGelinhosDe(nomeCliente: String, quantidade: Int, nomeSabor: String) {
+        val cliente = clienteRepository.findAll().first { it.nome == nomeCliente }
         val sabor = saborRepository.findAll().first { it.nome == nomeSabor }
 
         val request = PinguimVendaRequest(
-            regiaoId = regiao.id,
-            cliente = "Cliente Teste",
+            clienteId = cliente.id,
             itens = listOf(
                 PinguimVendaItemRequest(
                     saborId = sabor.id,
@@ -109,7 +107,7 @@ class PinguimVendaSteps(
     @When("eu cancelo a venda")
     fun euCanceloAVenda() {
         val id = lastVendaResponse!!.body!!.id
-        pinguimVendaController.cancelarVenda(id)
+        pinguimVendaController.cancelarVenda(id, sharedTestData.usuarioAutenticado!!)
     }
 
     @Then("a venda deve ser cancelada com sucesso")

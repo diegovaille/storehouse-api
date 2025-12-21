@@ -1,14 +1,18 @@
 Feature: Produção e Dedução de Estoque FIFO
 
   Background:
-    Given que eu sou um usuário autenticado
+    Given que existe um usuário "admin" com email "admin@pinguimice.com.br" e senha "123456"
+    And que existe uma organização "Pinguim Ice" com CNPJ "60774613000108"
+    And que o usuário "admin" pertence à organização "Pinguim Ice" com perfil "ADMIN"
+    And que existe uma filial "Matriz" vinculada à organização "Pinguim Ice"
+    And que eu estou autenticado como "admin@pinguimice.com.br"
     And que existe um sabor "Morango"
     And que existe estoque de matéria prima para "Morango" criado ontem com 100 unidades
     And que existe estoque de matéria prima para "Morango" criado hoje com 100 unidades
     And que existe estoque de embalagem para "Morango" com 500 unidades
     And que existe estoque de "Saco Transparente" suficiente
-    And que existe um sabor "Coco"
-    And que existe um sabor "Maçã Verde"
+    And que existe um sabor "Coco" que usa açúcar
+    And que existe um sabor "Maçã Verde" que usa açúcar
     And que existe estoque de matéria prima para "Coco" criado hoje com 500 unidades
     And que existe estoque de matéria prima para "Maçã Verde" criado hoje com 500 unidades
     And que existe estoque de embalagem para "Coco" com 500 unidades

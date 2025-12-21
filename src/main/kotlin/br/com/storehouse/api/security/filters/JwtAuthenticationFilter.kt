@@ -16,7 +16,7 @@ class JwtAuthenticationFilter(
 ) : OncePerRequestFilter() {
 
     private val excludedPaths = listOf(
-        "/api/pinguimice-admin/auth/login",
+        "/api/pinguim-admin/auth/login",
         "/api/auth/**"
     )
 

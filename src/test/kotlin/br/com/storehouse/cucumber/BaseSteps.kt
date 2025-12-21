@@ -2,21 +2,9 @@ package br.com.storehouse.cucumber
 
 import br.com.pinguimice.admin.repository.*
 import br.com.pinguimice.admin.service.*
-import br.com.storehouse.data.entities.Usuario
-import br.com.storehouse.data.model.UsuarioAutenticado
-import br.com.storehouse.data.repository.FilialRepository
-import br.com.storehouse.data.repository.OrganizacaoRepository
-import br.com.storehouse.data.repository.OrganizacaoUsuarioRepository
-import br.com.storehouse.data.repository.PerfilRepository
-import br.com.storehouse.data.repository.UsuarioRepository
+import br.com.storehouse.data.repository.*
 import br.com.storehouse.service.StorageService
-import io.cucumber.java.Before
-import io.cucumber.java.en.Given
-import jakarta.persistence.EntityManager
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import org.springframework.security.core.context.SecurityContextHolder
-import java.util.*
 
 open class BaseSteps {
 
@@ -41,6 +29,9 @@ open class BaseSteps {
     @Autowired protected lateinit var perfilRepository: PerfilRepository
     @Autowired protected lateinit var vendaRepository: PinguimVendaRepository
     @Autowired protected lateinit var vendaItemRepository: PinguimVendaItemRepository
+
+    @Autowired protected lateinit var clienteRepository: ClienteRepository
+    @Autowired protected lateinit var despesaRepository: DespesaRepository
 
     protected var lastException: Exception? = null
 }

@@ -1,6 +1,7 @@
 package br.com.pinguimice.admin.service
 
 import br.com.pinguimice.admin.entity.Producao
+import br.com.pinguimice.admin.entity.Sabor
 import br.com.pinguimice.admin.model.ProducaoRequest
 import br.com.pinguimice.admin.model.ProducaoResponse
 import br.com.pinguimice.admin.repository.ProducaoRepository
@@ -20,15 +21,23 @@ class ProducaoService(
     private val estoqueService: EstoqueService
 ) {
 
+    private fun obterSabor(id: UUID, filialId: UUID): Sabor {
+        val sabor = saborRepository.findByIdOrNull(id)
+            ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
+        if (sabor.filial.id != filialId) {
+            throw EntidadeNaoEncontradaException("Sabor não pertence à filial informada")
+        }
+        return sabor
+    }
+
     @LogCall
     @Transactional
-    fun registrarProducao(request: ProducaoRequest): ProducaoResponse {
-        val sabor = saborRepository.findByIdOrNull(request.saborId)
-            ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
+    fun registrarProducao(request: ProducaoRequest, filialId: UUID): ProducaoResponse {
+        val sabor = obterSabor(request.saborId, filialId)
 
         // Auto-deduct stock if requested
         if (request.deduzirEstoque) {
-            estoqueService.deduzirEstoqueParaProducao(sabor, request.quantidadeProduzida)
+            estoqueService.deduzirEstoqueParaProducao(sabor, request.quantidadeProduzida, filialId)
         }
 
         // Create production record
@@ -37,23 +46,24 @@ class ProducaoService(
             quantidadeProduzida = request.quantidadeProduzida,
             deduzirEstoque = request.deduzirEstoque,
             dataProducao = request.dataProducao ?: LocalDateTime.now(),
+            filial = sabor.filial,
             observacoes = request.observacoes
         )
 
         // Update Estoque Gelinho (always update stock of finished product)
-        estoqueService.atualizarEstoqueGelinho(sabor, request.quantidadeProduzida)
+        estoqueService.atualizarEstoqueGelinho(sabor, request.quantidadeProduzida, filialId)
 
         return producaoRepository.save(producao).toResponse()
     }
 
     @LogCall
-    fun listarProducao(inicio: String?, fim: String?): List<ProducaoResponse> {
+    fun listarProducao(inicio: String?, fim: String?, filialId: UUID): List<ProducaoResponse> {
         val producoes = if (inicio != null && fim != null) {
             val dataInicio = LocalDateTime.parse("${inicio}T00:00:00")
             val dataFim = LocalDateTime.parse("${fim}T23:59:59")
-            producaoRepository.findByDataProducaoBetweenOrderByDataProducaoDesc(dataInicio, dataFim)
+            producaoRepository.findByFilialIdAndDataProducaoBetweenOrderByDataProducaoDesc(filialId, dataInicio, dataFim)
         } else {
-            producaoRepository.findAllByOrderByDataProducaoDesc()
+            producaoRepository.findAllByFilialIdOrderByDataProducaoDesc(filialId)
         }
 
         return producoes.map { it.toResponse() }
@@ -61,18 +71,18 @@ class ProducaoService(
 
     @LogCall
     @Transactional
-    fun excluirProducao(id: UUID) {
-        val producao = producaoRepository.findByIdOrNull(id)
+    fun excluirProducao(id: UUID, filialId: UUID) {
+        val producao = producaoRepository.findByIdAndFilialId(id, filialId)
             ?: throw EntidadeNaoEncontradaException("Produção não encontrada")
-        
+
         // Reverse stock deduction if it was deducted
         if (producao.deduzirEstoque) {
-            estoqueService.reverterDeducaoEstoque(producao.sabor, producao.quantidadeProduzida)
+            estoqueService.reverterDeducaoEstoque(producao.sabor, producao.quantidadeProduzida, filialId)
         }
-        
+
         // Decrease Estoque Gelinho (reverse the addition)
-        estoqueService.atualizarEstoqueGelinho(producao.sabor, -producao.quantidadeProduzida)
-        
+        estoqueService.atualizarEstoqueGelinho(producao.sabor, -producao.quantidadeProduzida, filialId)
+
         producaoRepository.delete(producao)
     }
 }

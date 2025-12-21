@@ -3,12 +3,14 @@ package br.com.pinguimice.admin.controller
 import br.com.pinguimice.admin.model.RegiaoVendaRequest
 import br.com.pinguimice.admin.model.RegiaoVendaResponse
 import br.com.pinguimice.admin.service.RegiaoVendaService
+import br.com.storehouse.data.model.UsuarioAutenticado
 import org.springframework.http.HttpStatus
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import java.util.*
 
 @RestController
-@RequestMapping("/api/pinguimice-admin/regioes")
+@RequestMapping("/api/pinguim-admin/regioes")
 class RegiaoVendaController(
     private val regiaoVendaService: RegiaoVendaService
 ) {
@@ -23,9 +25,10 @@ class RegiaoVendaController(
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun criarRegiao(
-        @RequestBody request: RegiaoVendaRequest
+        @RequestBody request: RegiaoVendaRequest,
+        @AuthenticationPrincipal usuario: UsuarioAutenticado
     ): RegiaoVendaResponse {
-        return regiaoVendaService.criarRegiao(request)
+        return regiaoVendaService.criarRegiao(request, usuario.filialId)
     }
 
     @PutMapping("/{id}")

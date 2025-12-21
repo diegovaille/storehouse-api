@@ -13,7 +13,7 @@ import java.time.LocalDateTime
 import java.util.*
 
 @RestController
-@RequestMapping("/api/pinguimice-admin/vendas")
+@RequestMapping("/api/pinguim-admin/vendas")
 class PinguimVendaController(
     private val vendaService: PinguimVendaService
 ) {
@@ -23,16 +23,17 @@ class PinguimVendaController(
         @RequestBody request: PinguimVendaRequest,
         @AuthenticationPrincipal usuario: UsuarioAutenticado
     ): ResponseEntity<PinguimVendaResponse> {
-        val venda = vendaService.registrarVenda(request, usuario.email)
+        val venda = vendaService.registrarVenda(request, usuario.filialId, usuario.email)
         return ResponseEntity.status(HttpStatus.CREATED).body(venda)
     }
 
     @GetMapping
     fun listarVendas(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) inicio: LocalDateTime?,
-        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fim: LocalDateTime?
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) fim: LocalDateTime?,
+        @AuthenticationPrincipal usuario: UsuarioAutenticado
     ): List<PinguimVendaResponse> {
-        return vendaService.listarVendas(inicio, fim)
+        return vendaService.listarVendas(inicio, fim, usuario.filialId)
     }
 
     @PutMapping("/{id}")
@@ -41,7 +42,7 @@ class PinguimVendaController(
         @RequestBody request: PinguimVendaRequest,
         @AuthenticationPrincipal usuario: UsuarioAutenticado
     ): ResponseEntity<PinguimVendaResponse> {
-        val venda = vendaService.editarVenda(id, request, usuario.email)
+        val venda = vendaService.editarVenda(id, request, usuario.filialId, usuario.email)
         return ResponseEntity.ok(venda)
     }
 
@@ -50,15 +51,16 @@ class PinguimVendaController(
         @PathVariable id: UUID,
         @AuthenticationPrincipal usuario: UsuarioAutenticado
     ): ResponseEntity<PinguimVendaResponse> {
-        val venda = vendaService.marcarComoPaga(id, usuario.email)
+        val venda = vendaService.marcarComoPaga(id, usuario.filialId, usuario.email)
         return ResponseEntity.ok(venda)
     }
 
     @DeleteMapping("/{id}")
     fun cancelarVenda(
-        @PathVariable id: UUID
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal usuario: UsuarioAutenticado
     ): ResponseEntity<Void> {
-        vendaService.cancelarVenda(id)
+        vendaService.cancelarVenda(id, usuario.filialId)
         return ResponseEntity.noContent().build()
     }
 }

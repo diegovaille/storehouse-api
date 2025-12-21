@@ -6,19 +6,32 @@ import java.time.LocalDateTime
 import java.util.*
 
 @Entity
-@Table(name = "regiao_venda", schema = "pinguim")
-class RegiaoVenda(
+@Table(name = "cliente", schema = "pinguim")
+class Cliente(
     @Id
     var id: UUID = UUID.randomUUID(),
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 255)
     var nome: String,
 
     @Column(columnDefinition = "TEXT")
-    var descricao: String? = null,
+    var endereco: String? = null,
+
+    @Column(length = 20)
+    var telefone: String? = null,
+
+    @Column(length = 18)
+    var cnpj: String? = null,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "regiao_id")
+    var regiao: RegiaoVenda? = null,
 
     @Column(nullable = false)
-    var ativo: Boolean = true,
+    var bloqueado: Boolean = false,
+
+    @Column(name = "motivo_bloqueio", columnDefinition = "TEXT")
+    var motivoBloqueio: String? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "filial_id", nullable = false)
@@ -27,3 +40,4 @@ class RegiaoVenda(
     @Column(name = "data_criacao", nullable = false)
     var dataCriacao: LocalDateTime = LocalDateTime.now()
 )
+

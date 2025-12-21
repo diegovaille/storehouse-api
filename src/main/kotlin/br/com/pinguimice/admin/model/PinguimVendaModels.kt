@@ -4,8 +4,7 @@ import java.math.BigDecimal
 import java.util.UUID
 
 data class PinguimVendaRequest(
-    val regiaoId: UUID,
-    val cliente: String?,
+    val clienteId: UUID? = null,
     val itens: List<PinguimVendaItemRequest>,
     val total: BigDecimal,
     val totalPago: BigDecimal,
@@ -22,8 +21,10 @@ data class PinguimVendaResponse(
     val total: BigDecimal,
     val totalPago: BigDecimal,
     val dataVenda: String,
-    val cliente: String?,
-    val regiao: String,
+    val clienteId: UUID?,
+    val clienteNome: String?,
+    val regiaoId: UUID?,
+    val regiaoNome: String?,
     val vendedor: String,
     val abaterEstoque: Boolean,
     val itens: List<PinguimVendaItemResponse>

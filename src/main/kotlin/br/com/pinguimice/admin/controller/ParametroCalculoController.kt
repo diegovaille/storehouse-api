@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 
 @RestController
-@RequestMapping("/api/pinguimice-admin/parametros-calculo")
+@RequestMapping("/api/pinguim-admin/parametros-calculo")
 class ParametroCalculoController(
     private val parametroService: ParametroCalculoService
 ) {

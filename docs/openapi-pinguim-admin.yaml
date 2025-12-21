@@ -1,10 +1,10 @@
 openapi: 3.0.3
 info:
-  title: Pinguimice Admin API
-  description: API para gerenciamento administrativo da Pinguimice - Fábrica de Gelinhos
+  title: Pinguim Admin API
+  description: API para gerenciamento administrativo do Pinguim Ice - Fábrica de Gelinhos
   version: 1.0.0
   contact:
-    name: Pinguimice Team
+    name: Pinguim Ice Team
     email: contato@pinguimice.com.br
 
 servers:
@@ -26,13 +26,15 @@ tags:
     description: Gerenciamento de despesas
   - name: Vendas
     description: Gerenciamento de vendas
+  - name: Clientes
+    description: Gerenciamento de clientes
   - name: Relatórios
     description: Relatórios gerenciais com análises e agregações
   - name: Parâmetros de Cálculo
     description: Gerenciamento de parâmetros/fórmulas usados nos cálculos de estoque
 
 paths:
-  /api/pinguimice-admin/sabores:
+  /api/pinguim-admin/sabores:
     get:
       tags:
         - Sabores
@@ -72,7 +74,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SaborResponse'
 
-  /api/pinguimice-admin/regioes:
+  /api/pinguim-admin/regioes:
     get:
       tags:
         - Regiões
@@ -112,7 +114,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RegiaoVendaResponse'
 
-  /api/pinguimice-admin/regioes/{id}:
+  /api/pinguim-admin/regioes/{id}:
     put:
       tags:
         - Regiões
@@ -139,7 +141,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RegiaoVendaResponse'
 
-  /api/pinguimice-admin/materia-prima:
+  /api/pinguim-admin/materia-prima:
     get:
       tags:
         - Estoque
@@ -173,7 +175,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MateriaPrimaResponse'
 
-  /api/pinguimice-admin/materia-prima/{id}:
+  /api/pinguim-admin/materia-prima/{id}:
     put:
       tags:
         - Estoque
@@ -200,7 +202,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MateriaPrimaResponse'
 
-  /api/pinguimice-admin/embalagem:
+  /api/pinguim-admin/embalagem:
     get:
       tags:
         - Estoque
@@ -234,7 +236,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmbalagemResponse'
 
-  /api/pinguimice-admin/embalagem/{id}:
+  /api/pinguim-admin/embalagem/{id}:
     put:
       tags:
         - Estoque
@@ -261,7 +263,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmbalagemResponse'
 
-  /api/pinguimice-admin/outros:
+  /api/pinguim-admin/outros:
     get:
       tags:
         - Estoque
@@ -295,7 +297,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/OutrosResponse'
 
-  /api/pinguimice-admin/estoque-gelinho:
+  /api/pinguim-admin/estoque-gelinho:
     get:
       tags:
         - Estoque
@@ -311,7 +313,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/EstoqueGelinhoResponse'
 
-  /api/pinguimice-admin/producao:
+  /api/pinguim-admin/producao:
     get:
       tags:
         - Produção
@@ -358,7 +360,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProducaoResponse'
 
-  /api/pinguimice-admin/producao/{id}:
+  /api/pinguim-admin/producao/{id}:
     delete:
       tags:
         - Produção
@@ -376,7 +378,7 @@ paths:
         '204':
           description: Produção excluída com sucesso
 
-  /api/pinguimice-admin/despesas:
+  /api/pinguim-admin/despesas:
     get:
       tags:
         - Despesas
@@ -431,7 +433,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/DespesaResponse'
 
-  /api/pinguimice-admin/despesas/{id}:
+  /api/pinguim-admin/despesas/{id}:
     put:
       tags:
         - Despesas
@@ -481,7 +483,7 @@ paths:
         '204':
           description: Despesa deletada com sucesso
 
-  /api/pinguimice-admin/vendas:
+  /api/pinguim-admin/vendas:
     get:
       tags:
         - Vendas
@@ -528,7 +530,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PinguimVendaResponse'
 
-  /api/pinguimice-admin/vendas/{id}:
+  /api/pinguim-admin/vendas/{id}:
     put:
       tags:
         - Vendas
@@ -558,7 +560,7 @@ paths:
         '404':
           description: Venda não encontrada
 
-  /api/pinguimice-admin/vendas/{id}/pagar:
+  /api/pinguim-admin/vendas/{id}/pagar:
     patch:
       tags:
         - Vendas
@@ -582,7 +584,7 @@ paths:
         '404':
           description: Venda não encontrada
 
-  /api/pinguimice-admin/vendas/{id}:
+  /api/pinguim-admin/vendas/{id}:
     delete:
       tags:
         - Vendas
@@ -600,7 +602,163 @@ paths:
         '204':
           description: Venda cancelada com sucesso
 
-  /api/pinguimice-admin/relatorios/despesas:
+  /api/pinguim-admin/clientes:
+    get:
+      tags:
+        - Clientes
+      summary: Listar clientes
+      operationId: listarClientes
+      parameters:
+        - name: apenasAtivos
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Filtrar apenas clientes não bloqueados
+      responses:
+        '200':
+          description: Lista de clientes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClienteResponse'
+    post:
+      tags:
+        - Clientes
+      summary: Criar cliente
+      operationId: criarCliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClienteRequest'
+      responses:
+        '201':
+          description: Cliente criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+
+  /api/pinguim-admin/clientes/{id}:
+    get:
+      tags:
+        - Clientes
+      summary: Buscar cliente por ID
+      operationId: buscarClientePorId
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Cliente encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+        '404':
+          description: Cliente não encontrado
+    put:
+      tags:
+        - Clientes
+      summary: Atualizar cliente
+      operationId: atualizarCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClienteRequest'
+      responses:
+        '200':
+          description: Cliente atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+    delete:
+      tags:
+        - Clientes
+      summary: Deletar cliente
+      operationId: deletarCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Cliente deletado com sucesso
+
+  /api/pinguim-admin/clientes/{id}/bloquear:
+    patch:
+      tags:
+        - Clientes
+      summary: Bloquear cliente
+      operationId: bloquearCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                motivo:
+                  type: string
+                  description: Motivo do bloqueio
+      responses:
+        '200':
+          description: Cliente bloqueado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+
+  /api/pinguim-admin/clientes/{id}/desbloquear:
+    patch:
+      tags:
+        - Clientes
+      summary: Desbloquear cliente
+      operationId: desbloquearCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Cliente desbloqueado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+
+  /api/pinguim-admin/relatorios/despesas:
     get:
       tags:
         - Relatórios
@@ -632,7 +790,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RelatorioDespesasResponse'
 
-  /api/pinguimice-admin/relatorios/vendas:
+  /api/pinguim-admin/relatorios/vendas:
     get:
       tags:
         - Relatórios
@@ -664,7 +822,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RelatorioVendasResponse'
 
-  /api/pinguimice-admin/relatorios/estoque:
+  /api/pinguim-admin/relatorios/estoque:
     get:
       tags:
         - Relatórios
@@ -679,7 +837,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RelatorioEstoqueResponse'
 
-  /api/pinguimice-admin/relatorios/producao:
+  /api/pinguim-admin/relatorios/producao:
     get:
       tags:
         - Relatórios
@@ -711,7 +869,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RelatorioProducaoResponse'
 
-  /api/pinguimice-admin/relatorios/lucro:
+  /api/pinguim-admin/relatorios/lucro:
     get:
       tags:
         - Relatórios
@@ -743,7 +901,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RelatorioLucroResponse'
 
-  /api/pinguimice-admin/parametros-calculo:
+  /api/pinguim-admin/parametros-calculo:
     get:
       tags:
         - Parâmetros de Cálculo
@@ -791,7 +949,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ParametroCalculoResponse'
 
-  /api/pinguimice-admin/parametros-calculo/{chave}:
+  /api/pinguim-admin/parametros-calculo/{chave}:
     get:
       tags:
         - Parâmetros de Cálculo
@@ -1172,16 +1330,14 @@ components:
     PinguimVendaRequest:
       type: object
       required:
-        - regiaoId
         - itens
         - total
         - totalPago
       properties:
-        regiaoId:
+        clienteId:
           type: string
           format: uuid
-        cliente:
-          type: string
+          description: ID do cliente cadastrado (opcional). A região será derivada de cliente.regiao quando existir.
         itens:
           type: array
           items:
@@ -1224,10 +1380,22 @@ components:
         dataVenda:
           type: string
           format: date-time
-        cliente:
+        clienteId:
           type: string
-        regiao:
+          format: uuid
+          description: ID do cliente cadastrado
+        clienteNome:
           type: string
+          description: Nome do cliente cadastrado
+        regiaoId:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID da região (derivada do cliente quando existir)
+        regiaoNome:
+          type: string
+          nullable: true
+          description: Nome da região (derivada do cliente quando existir)
         vendedor:
           type: string
         abaterEstoque:
@@ -1721,3 +1889,66 @@ components:
           type: string
           format: date-time
           example: '2024-12-20T15:30:00'
+
+    # Clientes
+    ClienteRequest:
+      type: object
+      required:
+        - nome
+      properties:
+        nome:
+          type: string
+          example: 'João da Silva'
+        endereco:
+          type: string
+          example: 'Rua das Flores, 123'
+        telefone:
+          type: string
+          example: '11987654321'
+        cnpj:
+          type: string
+          example: '12.345.678/0001-90'
+        regiaoId:
+          type: string
+          format: uuid
+          description: ID da região (opcional)
+        bloqueado:
+          type: boolean
+          default: false
+        motivoBloqueio:
+          type: string
+          description: Motivo do bloqueio (se aplicável)
+
+    ClienteResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        endereco:
+          type: string
+        telefone:
+          type: string
+        cnpj:
+          type: string
+        regiao:
+          $ref: '#/components/schemas/ClienteRegiaoInfo'
+        bloqueado:
+          type: boolean
+        motivoBloqueio:
+          type: string
+        dataCriacao:
+          type: string
+          format: date-time
+
+    ClienteRegiaoInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+

@@ -9,6 +9,7 @@ import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 @Service
 class PinguimRelatorioService(
@@ -22,11 +23,11 @@ class PinguimRelatorioService(
 
     // ==================== Relatório de Despesas ====================
     @LogCall
-    fun gerarRelatorioDespesas(inicio: String, fim: String): RelatorioDespesasResponse {
+    fun gerarRelatorioDespesas(inicio: String, fim: String, filialId: UUID): RelatorioDespesasResponse {
         val dataInicio = LocalDateTime.parse("${inicio}T00:00:00")
         val dataFim = LocalDateTime.parse("${fim}T23:59:59")
 
-        val despesas = despesaRepository.findByDataCriacaoBetweenOrderByDataCriacaoDesc(dataInicio, dataFim)
+        val despesas = despesaRepository.findByFilialIdAndDataCriacaoBetweenOrderByDataCriacaoDesc(filialId, dataInicio, dataFim)
 
         val totalDespesas = despesas.sumOf { it.valor }
         val totalPago = despesas.filter { it.dataPagamento != null }.sumOf { it.valor }
@@ -108,11 +109,11 @@ class PinguimRelatorioService(
 
     // ==================== Relatório de Vendas ====================
     @LogCall
-    fun gerarRelatorioVendas(inicio: String, fim: String): RelatorioVendasResponse {
+    fun gerarRelatorioVendas(inicio: String, fim: String, filialId: UUID): RelatorioVendasResponse {
         val dataInicio = LocalDateTime.parse("${inicio}T00:00:00")
         val dataFim = LocalDateTime.parse("${fim}T23:59:59")
 
-        val vendas = vendaRepository.findByDataVendaBetweenOrderByDataVendaDesc(dataInicio, dataFim)
+        val vendas = vendaRepository.findByFilialIdAndDataVendaBetweenOrderByDataVendaDesc(filialId, dataInicio, dataFim)
 
         val totalVendas = vendas.sumOf { it.total }
         val totalRecebido = vendas.sumOf { it.totalPago }
@@ -152,9 +153,9 @@ class PinguimRelatorioService(
             }
             .sortedByDescending { it.quantidade }
 
-        // Vendas por região
+        // Vendas por região (derivada do cliente, quando existir)
         val vendasPorRegiao = vendas
-            .groupBy { it.regiao.nome }
+            .groupBy { it.cliente?.regiao?.nome ?: "SEM_REGIAO" }
             .map { (regiao, lista) ->
                 val valorTotal = lista.sumOf { it.total }
                 VendaPorRegiaoItem(
@@ -199,11 +200,11 @@ class PinguimRelatorioService(
 
         // Top clientes
         val topClientes = vendas
-            .filter { !it.cliente.isNullOrBlank() }
-            .groupBy { it.cliente!! }
-            .map { (cliente, lista) ->
+            .filter { it.cliente != null }
+            .groupBy { it.cliente!!.nome }
+            .map { (clienteNome, lista) ->
                 ClienteItem(
-                    cliente = cliente,
+                    cliente = clienteNome,
                     totalCompras = lista.sumOf { it.total },
                     quantidadeCompras = lista.size
                 )
@@ -228,10 +229,10 @@ class PinguimRelatorioService(
 
     // ==================== Relatório de Estoque ====================
     @LogCall
-    fun gerarRelatorioEstoque(): RelatorioEstoqueResponse {
-        val materiaPrima = materiaPrimaRepository.findAll()
-        val embalagens = embalagemRepository.findAll()
-        val gelinhos = estoqueGelinhoRepository.findAll()
+    fun gerarRelatorioEstoque(filialId: UUID): RelatorioEstoqueResponse {
+        val materiaPrima = materiaPrimaRepository.findByFilialIdOrderByDataCriacaoDesc(filialId)
+        val embalagens = embalagemRepository.findByFilialIdOrderByDataCriacaoDesc(filialId)
+        val gelinhos = estoqueGelinhoRepository.findByFilialIdOrderByUltimaAtualizacaoDesc(filialId)
 
         val estoqueMateriaPrima = materiaPrima.map {
             val percentual = if (it.totalUnidades > 0)
@@ -318,11 +319,11 @@ class PinguimRelatorioService(
 
     // ==================== Relatório de Produção ====================
     @LogCall
-    fun gerarRelatorioProducao(inicio: String, fim: String): RelatorioProducaoResponse {
+    fun gerarRelatorioProducao(inicio: String, fim: String, filialId: UUID): RelatorioProducaoResponse {
         val dataInicio = LocalDateTime.parse("${inicio}T00:00:00")
         val dataFim = LocalDateTime.parse("${fim}T23:59:59")
 
-        val producoes = producaoRepository.findByDataProducaoBetweenOrderByDataProducaoDesc(dataInicio, dataFim)
+        val producoes = producaoRepository.findByFilialIdAndDataProducaoBetweenOrderByDataProducaoDesc(filialId, dataInicio, dataFim)
 
         val totalProducao = producoes.sumOf { it.quantidadeProduzida }
 
@@ -369,12 +370,12 @@ class PinguimRelatorioService(
 
     // ==================== Relatório de Lucro ====================
     @LogCall
-    fun gerarRelatorioLucro(inicio: String, fim: String): RelatorioLucroResponse {
+    fun gerarRelatorioLucro(inicio: String, fim: String, filialId: UUID): RelatorioLucroResponse {
         val dataInicio = LocalDateTime.parse("${inicio}T00:00:00")
         val dataFim = LocalDateTime.parse("${fim}T23:59:59")
 
-        val vendas = vendaRepository.findByDataVendaBetweenOrderByDataVendaDesc(dataInicio, dataFim)
-        val despesas = despesaRepository.findByDataCriacaoBetweenOrderByDataCriacaoDesc(dataInicio, dataFim)
+        val vendas = vendaRepository.findByFilialIdAndDataVendaBetweenOrderByDataVendaDesc(filialId, dataInicio, dataFim)
+        val despesas = despesaRepository.findByFilialIdAndDataCriacaoBetweenOrderByDataCriacaoDesc(filialId, dataInicio, dataFim)
 
         val totalVendas = vendas.sumOf { it.totalPago } // Considera apenas o que foi pago
         val totalDespesas = despesas.filter { it.dataPagamento != null }.sumOf { it.valor }
@@ -391,7 +392,7 @@ class PinguimRelatorioService(
         val despesasPorMes = despesas
             .filter { it.dataPagamento != null }
             .groupBy { it.dataCriacao.format(DateTimeFormatter.ofPattern("yyyy-MM")) }
-            .mapValues { (_, lista) -> lista.sumOf { it.valor } }
+            .mapValues { (_, lista) -> lista.fold(BigDecimal.ZERO) { acc, d -> acc + d.valor } }
 
         val meses = (vendasPorMes.keys + despesasPorMes.keys).toSet().sorted()
 
@@ -449,4 +450,3 @@ class PinguimRelatorioService(
         )
     }
 }
-

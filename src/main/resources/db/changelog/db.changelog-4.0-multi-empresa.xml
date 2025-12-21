@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- Valor padrão para filialId do Pinguim Ice -->
+    <property name="defaultFilialId" value="bd03afb8-8110-4fc7-ab3e-99b7a140312b"/>
+
+    <!-- Adicionar usa_acucar e filial_id na tabela sabor -->
+    <changeSet id="add-usa-acucar-and-filial-to-sabor" author="diegovaille">
+        <addColumn tableName="sabor" schemaName="pinguim">
+            <column name="usa_acucar" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="filial_id" type="UUID" defaultValueComputed="'${defaultFilialId}'::uuid">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <!-- Atualizar sabores que usam açúcar (Coco e Maçã Verde) -->
+        <sql>
+            UPDATE pinguim.sabor
+            SET usa_acucar = true
+            WHERE LOWER(REPLACE(nome, 'ã', 'a')) LIKE '%coco%'
+               OR LOWER(REPLACE(nome, 'ã', 'a')) LIKE '%maca%verde%'
+               OR LOWER(REPLACE(nome, 'ã', 'a')) LIKE '%maca verde%';
+        </sql>
+    </changeSet>
+
+    <!-- Adicionar filial_id na tabela materia_prima -->
+    <changeSet id="add-filial-to-materia-prima" author="diegovaille">
+        <addColumn tableName="materia_prima" schemaName="pinguim">
+            <column name="filial_id" type="UUID" defaultValueComputed="'${defaultFilialId}'::uuid">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Adicionar filial_id na tabela embalagem -->
+    <changeSet id="add-filial-to-embalagem" author="diegovaille">
+        <addColumn tableName="embalagem" schemaName="pinguim">
+            <column name="filial_id" type="UUID" defaultValueComputed="'${defaultFilialId}'::uuid">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Adicionar filial_id na tabela outros -->
+    <changeSet id="add-filial-to-outros" author="diegovaille">
+        <addColumn tableName="outros" schemaName="pinguim">
+            <column name="filial_id" type="UUID" defaultValueComputed="'${defaultFilialId}'::uuid">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Adicionar filial_id na tabela estoque_gelinho -->
+    <changeSet id="add-filial-to-estoque-gelinho" author="diegovaille">
+        <addColumn tableName="estoque_gelinho" schemaName="pinguim">
+            <column name="filial_id" type="UUID" defaultValueComputed="'${defaultFilialId}'::uuid">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Adicionar filial_id na tabela regiao_venda -->
+    <changeSet id="add-filial-to-regiao-venda" author="diegovaille">
+        <addColumn tableName="regiao_venda" schemaName="pinguim">
+            <column name="filial_id" type="UUID" defaultValueComputed="'${defaultFilialId}'::uuid">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Adicionar filial_id na tabela venda -->
+    <changeSet id="add-filial-to-venda" author="diegovaille">
+        <addColumn tableName="venda" schemaName="pinguim">
+            <column name="filial_id" type="UUID" defaultValueComputed="'${defaultFilialId}'::uuid">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Adicionar filial_id na tabela despesa -->
+    <changeSet id="add-filial-to-despesa" author="diegovaille">
+        <addColumn tableName="despesa" schemaName="pinguim">
+            <column name="filial_id" type="UUID" defaultValueComputed="'${defaultFilialId}'::uuid">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Adicionar filial_id na tabela producao -->
+    <changeSet id="add-filial-to-producao" author="diegovaille">
+        <addColumn tableName="producao" schemaName="pinguim">
+            <column name="filial_id" type="UUID" defaultValueComputed="'${defaultFilialId}'::uuid">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Adicionar Foreign Keys para garantir integridade referencial -->
+    <changeSet id="add-foreign-keys-filial" author="diegovaille">
+        <addForeignKeyConstraint
+            baseTableName="sabor"
+            baseColumnNames="filial_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="filial"
+            referencedColumnNames="id"
+            constraintName="fk_sabor_filial"
+            onDelete="RESTRICT"/>
+
+        <addForeignKeyConstraint
+            baseTableName="materia_prima"
+            baseColumnNames="filial_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="filial"
+            referencedColumnNames="id"
+            constraintName="fk_materia_prima_filial"
+            onDelete="RESTRICT"/>
+
+        <addForeignKeyConstraint
+            baseTableName="embalagem"
+            baseColumnNames="filial_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="filial"
+            referencedColumnNames="id"
+            constraintName="fk_embalagem_filial"
+            onDelete="RESTRICT"/>
+
+        <addForeignKeyConstraint
+            baseTableName="outros"
+            baseColumnNames="filial_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="filial"
+            referencedColumnNames="id"
+            constraintName="fk_outros_filial"
+            onDelete="RESTRICT"/>
+
+        <addForeignKeyConstraint
+            baseTableName="estoque_gelinho"
+            baseColumnNames="filial_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="filial"
+            referencedColumnNames="id"
+            constraintName="fk_estoque_gelinho_filial"
+            onDelete="RESTRICT"/>
+
+        <addForeignKeyConstraint
+            baseTableName="regiao_venda"
+            baseColumnNames="filial_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="filial"
+            referencedColumnNames="id"
+            constraintName="fk_regiao_venda_filial"
+            onDelete="RESTRICT"/>
+
+        <addForeignKeyConstraint
+            baseTableName="venda"
+            baseColumnNames="filial_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="filial"
+            referencedColumnNames="id"
+            constraintName="fk_venda_filial"
+            onDelete="RESTRICT"/>
+
+        <addForeignKeyConstraint
+            baseTableName="despesa"
+            baseColumnNames="filial_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="filial"
+            referencedColumnNames="id"
+            constraintName="fk_despesa_filial"
+            onDelete="RESTRICT"/>
+
+        <addForeignKeyConstraint
+            baseTableName="producao"
+            baseColumnNames="filial_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="filial"
+            referencedColumnNames="id"
+            constraintName="fk_producao_filial"
+            onDelete="RESTRICT"/>
+    </changeSet>
+
+</databaseChangeLog>
+

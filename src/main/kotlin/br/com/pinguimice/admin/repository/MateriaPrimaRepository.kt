@@ -5,6 +5,9 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.*
 
 interface MateriaPrimaRepository : JpaRepository<MateriaPrima, UUID> {
-    fun findBySaborIdOrderByDataCriacaoAsc(saborId: UUID): List<MateriaPrima>
-    fun findBySaborIdIsNull(): List<MateriaPrima>
+    fun findByFilialIdOrderByDataCriacaoDesc(filialId: UUID): List<MateriaPrima>
+    fun findByIdAndFilialId(id: UUID, filialId: UUID): MateriaPrima?
+
+    fun findByFilialIdAndSaborIdOrderByDataCriacaoAsc(filialId: UUID, saborId: UUID): List<MateriaPrima>
+    fun findByFilialIdAndSaborIdIsNull(filialId: UUID): List<MateriaPrima>
 }

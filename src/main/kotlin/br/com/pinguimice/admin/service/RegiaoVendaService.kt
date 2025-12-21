@@ -4,6 +4,7 @@ import br.com.pinguimice.admin.entity.RegiaoVenda
 import br.com.pinguimice.admin.model.RegiaoVendaRequest
 import br.com.pinguimice.admin.model.RegiaoVendaResponse
 import br.com.pinguimice.admin.repository.RegiaoVendaRepository
+import br.com.storehouse.data.repository.FilialRepository
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
 import br.com.storehouse.logging.LogCall
 import org.springframework.data.repository.findByIdOrNull
@@ -13,7 +14,8 @@ import java.util.*
 
 @Service
 class RegiaoVendaService(
-    private val regiaoVendaRepository: RegiaoVendaRepository
+    private val regiaoVendaRepository: RegiaoVendaRepository,
+    private val filialRepository: FilialRepository
 ) {
 
     @LogCall
@@ -28,10 +30,14 @@ class RegiaoVendaService(
 
     @LogCall
     @Transactional
-    fun criarRegiao(request: RegiaoVendaRequest): RegiaoVendaResponse {
+    fun criarRegiao(request: RegiaoVendaRequest, filialId: UUID): RegiaoVendaResponse {
+        val filial = filialRepository.findById(filialId)
+            .orElseThrow { EntidadeNaoEncontradaException("Filial não encontrada") }
+
         val regiao = RegiaoVenda(
             nome = request.nome,
-            descricao = request.descricao
+            descricao = request.descricao,
+            filial = filial
         )
 
         return regiaoVendaRepository.save(regiao).toResponse()

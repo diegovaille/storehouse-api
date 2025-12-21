@@ -2,6 +2,7 @@ package br.com.storehouse.cucumber
 
 import br.com.pinguimice.admin.entity.TipoEntrada
 import br.com.pinguimice.admin.model.*
+import br.com.storehouse.data.SharedTestData
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
@@ -9,7 +10,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.fail
 import java.math.BigDecimal
 
-class EstoqueSteps : BaseSteps() {
+class EstoqueSteps(private val sharedTestData: SharedTestData) : BaseSteps() {
 
     private var lastMateriaPrimaResponse: MateriaPrimaResponse? = null
     private var lastEmbalagemResponse: EmbalagemResponse? = null
@@ -18,7 +19,12 @@ class EstoqueSteps : BaseSteps() {
 
     @Given("que existe um sabor {string}")
     fun queExisteUmSabor(nome: String) {
-        lastSaborResponse = saborService.criarSabor(SaborRequest(nome = nome, corHex = "#FFFFFF"))
+        lastSaborResponse = saborService.criarSabor(SaborRequest(nome = nome, corHex = "#FFFFFF"), sharedTestData.filial!!.id)
+    }
+
+    @Given("que existe um sabor {string} que usa açúcar")
+    fun queExisteUmSaborQueUsaAcucar(nome: String) {
+        lastSaborResponse = saborService.criarSabor(SaborRequest(nome = nome, corHex = "#FFFFFF", usaAcucar = true), sharedTestData.filial!!.id)
     }
 
     @When("eu adiciono estoque de matéria prima {string} para o sabor {string} do tipo {string} com quantidade {double} e preço {double}")
@@ -31,7 +37,8 @@ class EstoqueSteps : BaseSteps() {
                 tipoEntrada = TipoEntrada.valueOf(tipo),
                 quantidadeEntrada = BigDecimal.valueOf(qtd),
                 precoEntrada = BigDecimal.valueOf(preco)
-            )
+            ),
+            sharedTestData.filial!!.id
         )
     }
 
@@ -67,7 +74,8 @@ class EstoqueSteps : BaseSteps() {
                 saborId = sabor.id,
                 quantidadeKg = BigDecimal.valueOf(qtd),
                 precoKg = BigDecimal.valueOf(preco)
-            )
+            ),
+            sharedTestData.filial!!.id
         )
     }
 
@@ -79,7 +87,8 @@ class EstoqueSteps : BaseSteps() {
                 quantidadeEntrada = qtd,
                 precoEntrada = BigDecimal.valueOf(preco),
                 unidadesPorItem = unidadesPorItem
-            )
+            ),
+            sharedTestData.filial!!.id
         )
     }
 }

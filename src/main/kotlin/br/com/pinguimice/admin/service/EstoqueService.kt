@@ -3,6 +3,7 @@ package br.com.pinguimice.admin.service
 import br.com.pinguimice.admin.entity.*
 import br.com.pinguimice.admin.model.*
 import br.com.pinguimice.admin.repository.*
+import br.com.storehouse.data.repository.FilialRepository
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
 import br.com.storehouse.exceptions.RequisicaoInvalidaException
 import br.com.storehouse.logging.LogCall
@@ -11,10 +12,10 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.text.Normalizer
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.math.ceil
-import java.text.Normalizer
 
 @Service
 class EstoqueService(
@@ -23,8 +24,22 @@ class EstoqueService(
     private val outrosRepository: OutrosRepository,
     private val estoqueGelinhoRepository: EstoqueGelinhoRepository,
     private val saborRepository: SaborRepository,
-    private val parametroCalculoService: ParametroCalculoService
+    private val parametroCalculoService: ParametroCalculoService,
+    private val filialRepository: FilialRepository
 ) {
+
+    private fun obterFilial(filialId: UUID) = filialRepository.findByIdOrNull(filialId)
+        ?: throw EntidadeNaoEncontradaException("Filial não encontrada")
+
+    private fun obterSabor(id: UUID?, filialId: UUID): Sabor? {
+        if (id == null) return null
+        val sabor = saborRepository.findByIdOrNull(id)
+            ?: throw EntidadeNaoEncontradaException("Sabor não encontrado")
+        if (sabor.filial.id != filialId) {
+            throw EntidadeNaoEncontradaException("Sabor não pertence à filial informada")
+        }
+        return sabor
+    }
 
     // Funções auxiliares para buscar parâmetros (com cache)
     private fun getUnidadesPorEmbalagemKg() = parametroCalculoService.obterValor(ParametroCalculoService.UNIDADES_POR_EMBALAGEM_KG)
@@ -37,8 +52,11 @@ class EstoqueService(
      * Matéria Prima (Insumos)
      */
     @LogCall
-    fun listarMateriaPrima(): List<MateriaPrimaResponse> {
-        return materiaPrimaRepository.findAll().filter { it.estoqueUnidades > 0 }.map { it.toResponse() }
+    fun listarMateriaPrima(filialId: UUID): List<MateriaPrimaResponse> {
+        return materiaPrimaRepository
+            .findByFilialIdOrderByDataCriacaoDesc(filialId)
+            .filter { it.estoqueUnidades > 0 }
+            .map { it.toResponse() }
     }
 
     /**
@@ -46,13 +64,12 @@ class EstoqueService(
      */
     @LogCall
     @Transactional
-    fun criarMateriaPrima(request: MateriaPrimaRequest): MateriaPrimaResponse {
-        val sabor = obterSabor(request.saborId)
+    fun criarMateriaPrima(request: MateriaPrimaRequest, filialId: UUID): MateriaPrimaResponse {
+        val filial = obterFilial(filialId)
+        val sabor = obterSabor(request.saborId, filialId)
 
         val totalUnidades = calcularTotalUnidadesMateriaPrima(request.tipoEntrada, request.quantidadeEntrada, sabor)
-
         val precoPorUnidade = if (totalUnidades > 0) {
-            // Help me use the tipoEntrada on a case
             calcularValorPorUnidade(request.precoEntrada, request.tipoEntrada, sabor)
         } else {
             BigDecimal.ZERO
@@ -66,35 +83,11 @@ class EstoqueService(
             precoEntrada = request.precoEntrada,
             totalUnidades = totalUnidades,
             precoPorUnidade = precoPorUnidade,
-            estoqueUnidades = totalUnidades
+            estoqueUnidades = totalUnidades,
+            filial = filial
         )
 
         return materiaPrimaRepository.save(materiaPrima).toResponse()
-    }
-
-    private fun calcularValorPorUnidade(
-        precoEntrada: BigDecimal,
-        tipoEntrada: TipoEntrada,
-        sabor: Sabor?
-    ): BigDecimal {
-        when (tipoEntrada) {
-            TipoEntrada.CAIXA -> {
-                val totalUnidades = getTotalPacotesPorCaixa() * getUnidadesPorPacote()
-                return precoEntrada.divide(BigDecimal(totalUnidades), 4, RoundingMode.HALF_UP)
-            }
-            TipoEntrada.PACOTE -> {
-                return precoEntrada.divide(BigDecimal(getUnidadesPorPacote()), 4, RoundingMode.HALF_UP)
-            }
-            TipoEntrada.KG -> {
-                val unidadesPorKg = if (sabor != null) getTotalUnidadePorKg() else getTotalUnidadeAcucarPorKg()
-                return precoEntrada.divide(BigDecimal(unidadesPorKg), 4, RoundingMode.HALF_UP)
-            }
-        }
-    }
-
-    private fun obterSabor(id: UUID?): Sabor? {
-        if (id == null) return null
-        return saborRepository.findByIdOrNull(id)
     }
 
     /**
@@ -102,11 +95,11 @@ class EstoqueService(
      */
     @LogCall
     @Transactional
-    fun atualizarMateriaPrima(id: UUID, request: MateriaPrimaRequest): MateriaPrimaResponse {
-        val materiaPrima = materiaPrimaRepository.findByIdOrNull(id)
+    fun atualizarMateriaPrima(id: UUID, request: MateriaPrimaRequest, filialId: UUID): MateriaPrimaResponse {
+        val materiaPrima = materiaPrimaRepository.findByIdAndFilialId(id, filialId)
             ?: throw EntidadeNaoEncontradaException("Matéria prima não encontrada")
 
-        val sabor = obterSabor(request.saborId)
+        val sabor = obterSabor(request.saborId, filialId)
 
         val totalUnidades = calcularTotalUnidadesMateriaPrima(request.tipoEntrada, request.quantidadeEntrada, sabor)
         val precoPorUnidade = if (totalUnidades > 0) {
@@ -130,9 +123,30 @@ class EstoqueService(
     }
 
     /**
-     * Calcula o total de unidades de matéria prima com base no tipo de entrada e quantidade.
-     * Agora considera que quando sabor == null (matéria-prima global como açúcar) o fator é diferente.
+     * Deleta uma matéria prima (insumo) existente.
      */
+    @LogCall
+    @Transactional
+    fun deletarMateriaPrima(id: UUID, filialId: UUID) {
+        val materiaPrima = materiaPrimaRepository.findByIdAndFilialId(id, filialId)
+            ?: throw EntidadeNaoEncontradaException("Matéria prima não encontrada")
+        materiaPrimaRepository.delete(materiaPrima)
+    }
+
+    private fun calcularValorPorUnidade(precoEntrada: BigDecimal, tipoEntrada: TipoEntrada, sabor: Sabor?): BigDecimal {
+        return when (tipoEntrada) {
+            TipoEntrada.CAIXA -> {
+                val totalUnidades = getTotalPacotesPorCaixa() * getUnidadesPorPacote()
+                precoEntrada.divide(BigDecimal(totalUnidades), 4, RoundingMode.HALF_UP)
+            }
+            TipoEntrada.PACOTE -> precoEntrada.divide(BigDecimal(getUnidadesPorPacote()), 4, RoundingMode.HALF_UP)
+            TipoEntrada.KG -> {
+                val unidadesPorKg = if (sabor != null) getTotalUnidadePorKg() else getTotalUnidadeAcucarPorKg()
+                precoEntrada.divide(BigDecimal(unidadesPorKg), 4, RoundingMode.HALF_UP)
+            }
+        }
+    }
+
     private fun calcularTotalUnidadesMateriaPrima(tipo: TipoEntrada, quantidade: BigDecimal, sabor: Sabor?): Int {
         return when (tipo) {
             TipoEntrada.CAIXA -> (quantidade.toDouble() * getTotalPacotesPorCaixa() * getUnidadesPorPacote()).toInt()
@@ -148,8 +162,11 @@ class EstoqueService(
      * Embalagens
      */
     @LogCall
-    fun listarEmbalagens(): List<EmbalagemResponse> {
-        return embalagemRepository.findAll().filter { it.estoqueUnidades > 0 }.map { it.toResponse() }
+    fun listarEmbalagens(filialId: UUID): List<EmbalagemResponse> {
+        return embalagemRepository
+            .findByFilialIdOrderByDataCriacaoDesc(filialId)
+            .filter { it.estoqueUnidades > 0 }
+            .map { it.toResponse() }
     }
 
     /**
@@ -157,11 +174,11 @@ class EstoqueService(
      */
     @LogCall
     @Transactional
-    fun criarEmbalagem(request: EmbalagemRequest): EmbalagemResponse {
-        val sabor = obterSabor(request.saborId)
+    fun criarEmbalagem(request: EmbalagemRequest, filialId: UUID): EmbalagemResponse {
+        val filial = obterFilial(filialId)
+        val sabor = obterSabor(request.saborId, filialId)
 
         val totalUnidades = (request.quantidadeKg.toDouble() * getUnidadesPorEmbalagemKg()).toInt()
-
         val precoPorUnidade = if (totalUnidades > 0) {
             request.precoKg.divide(BigDecimal(getUnidadesPorEmbalagemKg()), 4, RoundingMode.HALF_UP)
         } else {
@@ -175,7 +192,8 @@ class EstoqueService(
             precoKg = request.precoKg,
             totalUnidades = totalUnidades,
             precoPorUnidade = precoPorUnidade,
-            estoqueUnidades = totalUnidades
+            estoqueUnidades = totalUnidades,
+            filial = filial
         )
 
         return embalagemRepository.save(embalagem).toResponse()
@@ -186,11 +204,11 @@ class EstoqueService(
      */
     @LogCall
     @Transactional
-    fun atualizarEmbalagem(id: UUID, request: EmbalagemRequest): EmbalagemResponse {
-        val embalagem = embalagemRepository.findByIdOrNull(id)
+    fun atualizarEmbalagem(id: UUID, request: EmbalagemRequest, filialId: UUID): EmbalagemResponse {
+        val embalagem = embalagemRepository.findByIdAndFilialId(id, filialId)
             ?: throw EntidadeNaoEncontradaException("Embalagem não encontrada")
 
-        val sabor = obterSabor(id = request.saborId)
+        val sabor = obterSabor(request.saborId, filialId)
 
         val totalUnidades = (request.quantidadeKg.toDouble() * getUnidadesPorEmbalagemKg()).toInt()
         val precoPorUnidade = if (totalUnidades > 0) {
@@ -213,11 +231,25 @@ class EstoqueService(
     }
 
     /**
+     * Deleta uma embalagem existente.
+     */
+    @LogCall
+    @Transactional
+    fun deletarEmbalagem(id: UUID, filialId: UUID) {
+        val embalagem = embalagemRepository.findByIdAndFilialId(id, filialId)
+            ?: throw EntidadeNaoEncontradaException("Embalagem não encontrada")
+        embalagemRepository.delete(embalagem)
+    }
+
+    /**
      * Outros
      */
     @LogCall
-    fun listarOutros(): List<OutrosResponse> {
-        return outrosRepository.findAll().filter { it.estoqueUnidades > 0 }.map { it.toResponse() }
+    fun listarOutros(filialId: UUID): List<OutrosResponse> {
+        return outrosRepository
+            .findByFilialIdOrderByDataCriacaoDesc(filialId)
+            .filter { it.estoqueUnidades > 0 }
+            .map { it.toResponse() }
     }
 
     /**
@@ -225,9 +257,10 @@ class EstoqueService(
      */
     @LogCall
     @Transactional
-    fun criarOutros(request: OutrosRequest): OutrosResponse {
+    fun criarOutros(request: OutrosRequest, filialId: UUID): OutrosResponse {
+        val filial = obterFilial(filialId)
+
         val totalUnidades = request.quantidadeEntrada * request.unidadesPorItem
-        
         val precoPorUnidade = if (totalUnidades > 0) {
             request.precoEntrada.divide(BigDecimal(totalUnidades), 4, RoundingMode.HALF_UP)
         } else {
@@ -241,7 +274,8 @@ class EstoqueService(
             unidadesPorItem = request.unidadesPorItem,
             totalUnidades = totalUnidades,
             precoPorUnidade = precoPorUnidade,
-            estoqueUnidades = totalUnidades
+            estoqueUnidades = totalUnidades,
+            filial = filial
         )
 
         return outrosRepository.save(outros).toResponse()
@@ -251,14 +285,53 @@ class EstoqueService(
      * Atualiza um item de outros existente.
      */
     @LogCall
-    fun listarEstoqueGelinho(): List<EstoqueGelinhoResponse> {
-        return estoqueGelinhoRepository.findAll().map { it.toResponse() }
+    @Transactional
+    fun atualizarOutros(id: UUID, request: OutrosRequest, filialId: UUID): OutrosResponse {
+        val outros = outrosRepository.findByIdAndFilialId(id, filialId)
+            ?: throw EntidadeNaoEncontradaException("Item não encontrado")
+
+        val totalUnidades = request.quantidadeEntrada * request.unidadesPorItem
+        val precoPorUnidade = if (totalUnidades > 0) {
+            request.precoEntrada.divide(BigDecimal(totalUnidades), 4, RoundingMode.HALF_UP)
+        } else {
+            BigDecimal.ZERO
+        }
+
+        val diffUnidades = totalUnidades - outros.totalUnidades
+        outros.estoqueUnidades += diffUnidades
+
+        outros.nome = request.nome
+        outros.quantidadeEntrada = request.quantidadeEntrada
+        outros.precoEntrada = request.precoEntrada
+        outros.unidadesPorItem = request.unidadesPorItem
+        outros.totalUnidades = totalUnidades
+        outros.precoPorUnidade = precoPorUnidade
+
+        return outrosRepository.save(outros).toResponse()
     }
 
     @LogCall
     @Transactional
-    fun atualizarEstoqueGelinho(sabor: Sabor, quantidade: Int) {
-        val estoqueGelinho = estoqueGelinhoRepository.findBySaborId(sabor.id)
+    fun deletarOutros(id: UUID, filialId: UUID) {
+        val outros = outrosRepository.findByIdAndFilialId(id, filialId)
+            ?: throw EntidadeNaoEncontradaException("Item não encontrado")
+        outrosRepository.delete(outros)
+    }
+
+    @LogCall
+    fun listarEstoqueGelinho(filialId: UUID): List<EstoqueGelinhoResponse> {
+        return estoqueGelinhoRepository.findByFilialIdOrderByUltimaAtualizacaoDesc(filialId).map { it.toResponse() }
+    }
+
+    @LogCall
+    @Transactional
+    fun atualizarEstoqueGelinho(sabor: Sabor, quantidade: Int, filialId: UUID) {
+        // Valida sabor pertence à filial, e grava estoque na mesma filial.
+        if (sabor.filial.id != filialId) {
+            throw EntidadeNaoEncontradaException("Sabor não pertence à filial informada")
+        }
+
+        val estoqueGelinho = estoqueGelinhoRepository.findBySaborIdAndFilialId(sabor.id, filialId)
         if (estoqueGelinho != null) {
             estoqueGelinho.quantidade += quantidade
             estoqueGelinho.ultimaAtualizacao = LocalDateTime.now()
@@ -266,7 +339,8 @@ class EstoqueService(
         } else {
             val novoEstoque = EstoqueGelinho(
                 sabor = sabor,
-                quantidade = quantidade
+                quantidade = quantidade,
+                filial = obterFilial(filialId)
             )
             estoqueGelinhoRepository.save(novoEstoque)
         }
@@ -274,34 +348,19 @@ class EstoqueService(
 
     // ==================== DEDUÇÃO DE ESTOQUE ====================
 
-    // Normaliza nomes e detecta sabores que usam açúcar como base (ex: coco, maçã verde)
-    private fun normalizeName(value: String): String {
-        return Normalizer.normalize(value, Normalizer.Form.NFD)
-            .replace("\\p{M}+".toRegex(), "")
-            .lowercase()
-            .trim()
-    }
-
-    private fun saborUsaAcucar(sabor: Sabor?): Boolean {
-        if (sabor == null) return false
-        val nome = normalizeName(sabor.nome)
-        if (nome.contains("coco")) return true
-        // detectar maçã verde (maca verde sem acento) ou variações
-        if (nome.contains("maca") && nome.contains("verde")) return true
-        return false
-    }
+    private fun saborUsaAcucar(sabor: Sabor?): Boolean = sabor?.usaAcucar ?: false
 
     @LogCall
     @Transactional
-    fun deduzirEstoqueParaProducao(sabor: Sabor, quantidadeProduzida: Int) {
+    fun deduzirEstoqueParaProducao(sabor: Sabor, quantidadeProduzida: Int, filialId: UUID) {
+        if (sabor.filial.id != filialId) {
+            throw EntidadeNaoEncontradaException("Sabor não pertence à filial informada")
+        }
+
         // 1) Insumos
-        // Se o sabor usa açúcar, deduz TANTO o açúcar quanto a matéria-prima do sabor
         if (saborUsaAcucar(sabor)) {
-            // 1a) Deduzir açúcar (sabor = null)
-            val acucar = materiaPrimaRepository.findBySaborIdIsNull()
-            require(acucar.isNotEmpty()) {
-                throw RequisicaoInvalidaException("Nenhum estoque de açúcar encontrado para o sabor ${sabor.nome}")
-            }
+            val acucar = materiaPrimaRepository.findByFilialIdAndSaborIdIsNull(filialId)
+            if (acucar.isEmpty()) throw RequisicaoInvalidaException("Nenhum estoque de açúcar encontrado para o sabor ${sabor.nome}")
             validarDisponivel(acucar.sumOf { it.estoqueUnidades }, quantidadeProduzida) {
                 "Estoque insuficiente de açúcar para o sabor ${sabor.nome}. Disponível: $it, Necessário: $quantidadeProduzida"
             }
@@ -313,11 +372,8 @@ class EstoqueService(
                 save = { materiaPrimaRepository.save(it) }
             )
 
-            // 1b) Deduzir matéria-prima do próprio sabor (essência, corante, etc.)
-            val insumosSabor = materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
-            require(insumosSabor.isNotEmpty()) {
-                throw RequisicaoInvalidaException("Nenhum estoque de insumo encontrado para o sabor ${sabor.nome}")
-            }
+            val insumosSabor = materiaPrimaRepository.findByFilialIdAndSaborIdOrderByDataCriacaoAsc(filialId, sabor.id)
+            if (insumosSabor.isEmpty()) throw RequisicaoInvalidaException("Nenhum estoque de insumo encontrado para o sabor ${sabor.nome}")
             validarDisponivel(insumosSabor.sumOf { it.estoqueUnidades }, quantidadeProduzida) {
                 "Estoque insuficiente de insumo para o sabor ${sabor.nome}. Disponível: $it, Necessário: $quantidadeProduzida"
             }
@@ -329,11 +385,8 @@ class EstoqueService(
                 save = { materiaPrimaRepository.save(it) }
             )
         } else {
-            // Sabores normais: apenas matéria-prima do sabor
-            val insumos = materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
-            require(insumos.isNotEmpty()) {
-                throw RequisicaoInvalidaException("Nenhum estoque de insumo encontrado para o sabor ${sabor.nome}")
-            }
+            val insumos = materiaPrimaRepository.findByFilialIdAndSaborIdOrderByDataCriacaoAsc(filialId, sabor.id)
+            if (insumos.isEmpty()) throw RequisicaoInvalidaException("Nenhum estoque de insumo encontrado para o sabor ${sabor.nome}")
             validarDisponivel(insumos.sumOf { it.estoqueUnidades }, quantidadeProduzida) {
                 "Estoque insuficiente de insumo para o sabor ${sabor.nome}. Disponível: $it, Necessário: $quantidadeProduzida"
             }
@@ -347,10 +400,8 @@ class EstoqueService(
         }
 
         // 2) Embalagens
-        val embalagens = embalagemRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
-        require(embalagens.isNotEmpty()) {
-            throw RequisicaoInvalidaException("Nenhum estoque de embalagem encontrado para o sabor ${sabor.nome}")
-        }
+        val embalagens = embalagemRepository.findByFilialIdAndSaborIdOrderByDataCriacaoAsc(filialId, sabor.id)
+        if (embalagens.isEmpty()) throw RequisicaoInvalidaException("Nenhum estoque de embalagem encontrado para o sabor ${sabor.nome}")
         validarDisponivel(embalagens.sumOf { it.estoqueUnidades }, quantidadeProduzida) {
             "Estoque insuficiente de embalagem para o sabor ${sabor.nome}. Disponível: $it, Necessário: $quantidadeProduzida"
         }
@@ -361,33 +412,18 @@ class EstoqueService(
             setEstoque = { item, novo -> item.estoqueUnidades = novo },
             save = { embalagemRepository.save(it) }
         )
-
-        // 3) Plásticos (1 por 50 unidades \- arredonda para múltiplos de 50)
-        val plasticosNecessarios = ceil(quantidadeProduzida / 50.0).toInt() * 50
-        val plasticos = outrosRepository.findByNomeContainingIgnoreCaseOrderByDataCriacaoAsc("Saco Transparente")
-        require(plasticos.isNotEmpty()) {
-            throw RequisicaoInvalidaException("Nenhum estoque de plástico encontrado")
-        }
-        validarDisponivel(plasticos.sumOf { it.estoqueUnidades }, plasticosNecessarios) {
-            "Estoque insuficiente de plásticos. Disponível: $it, Necessário: $plasticosNecessarios"
-        }
-        deduzirFIFO(
-            items = plasticos,
-            quantidade = plasticosNecessarios,
-            getEstoque = { it.estoqueUnidades },
-            setEstoque = { item, novo -> item.estoqueUnidades = novo },
-            save = { outrosRepository.save(it) }
-        )
     }
 
     @LogCall
     @Transactional
-    fun reverterDeducaoEstoque(sabor: Sabor, quantidadeProduzida: Int) {
+    fun reverterDeducaoEstoque(sabor: Sabor, quantidadeProduzida: Int, filialId: UUID) {
+        if (sabor.filial.id != filialId) {
+            throw EntidadeNaoEncontradaException("Sabor não pertence à filial informada")
+        }
+
         // 1) Insumos
-        // Se o sabor usa açúcar, restaura TANTO o açúcar quanto a matéria-prima do sabor
         if (saborUsaAcucar(sabor)) {
-            // 1a) Restaurar açúcar (sabor = null)
-            val acucar = materiaPrimaRepository.findBySaborIdIsNull()
+            val acucar = materiaPrimaRepository.findByFilialIdAndSaborIdIsNull(filialId)
             restaurarReverseFIFO(
                 items = acucar,
                 quantidade = quantidadeProduzida,
@@ -397,8 +433,7 @@ class EstoqueService(
                 save = { materiaPrimaRepository.save(it) }
             )
 
-            // 1b) Restaurar matéria-prima do próprio sabor
-            val insumosSabor = materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
+            val insumosSabor = materiaPrimaRepository.findByFilialIdAndSaborIdOrderByDataCriacaoAsc(filialId, sabor.id)
             restaurarReverseFIFO(
                 items = insumosSabor,
                 quantidade = quantidadeProduzida,
@@ -408,8 +443,7 @@ class EstoqueService(
                 save = { materiaPrimaRepository.save(it) }
             )
         } else {
-            // Sabores normais: apenas matéria-prima do sabor
-            val insumos = materiaPrimaRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
+            val insumos = materiaPrimaRepository.findByFilialIdAndSaborIdOrderByDataCriacaoAsc(filialId, sabor.id)
             restaurarReverseFIFO(
                 items = insumos,
                 quantidade = quantidadeProduzida,
@@ -421,7 +455,7 @@ class EstoqueService(
         }
 
         // 2) Embalagens
-        val embalagens = embalagemRepository.findBySaborIdOrderByDataCriacaoAsc(sabor.id)
+        val embalagens = embalagemRepository.findByFilialIdAndSaborIdOrderByDataCriacaoAsc(filialId, sabor.id)
         restaurarReverseFIFO(
             items = embalagens,
             quantidade = quantidadeProduzida,
@@ -433,7 +467,7 @@ class EstoqueService(
 
         // 3) Plásticos
         val plasticosNecessarios = ceil(quantidadeProduzida / 50.0).toInt() * 50
-        val plasticos = outrosRepository.findByNomeContainingIgnoreCaseOrderByDataCriacaoAsc("Saco Transparente")
+        val plasticos = outrosRepository.findByFilialIdAndNomeContainingIgnoreCaseOrderByDataCriacaoAsc(filialId, "Saco Transparente")
         restaurarReverseFIFO(
             items = plasticos,
             quantidade = plasticosNecessarios,
@@ -495,55 +529,5 @@ class EstoqueService(
             }
             save(item)
         }
-    }
-
-    @LogCall
-    @Transactional
-    fun deletarMateriaPrima(id: UUID) {
-        val materiaPrima = materiaPrimaRepository.findByIdOrNull(id)
-            ?: throw EntidadeNaoEncontradaException("Matéria prima não encontrada")
-        materiaPrimaRepository.delete(materiaPrima)
-    }
-
-    @LogCall
-    @Transactional
-    fun deletarEmbalagem(id: UUID) {
-        val embalagem = embalagemRepository.findByIdOrNull(id)
-            ?: throw EntidadeNaoEncontradaException("Embalagem não encontrada")
-        embalagemRepository.delete(embalagem)
-    }
-
-    @LogCall
-    @Transactional
-    fun atualizarOutros(id: UUID, request: OutrosRequest): OutrosResponse {
-        val outros = outrosRepository.findByIdOrNull(id)
-            ?: throw EntidadeNaoEncontradaException("Outros não encontrado")
-
-        val totalUnidades = request.quantidadeEntrada * request.unidadesPorItem
-        val precoPorUnidade = if (totalUnidades > 0) {
-            request.precoEntrada.divide(BigDecimal(totalUnidades), 4, RoundingMode.HALF_UP)
-        } else {
-            BigDecimal.ZERO
-        }
-
-        val diffUnidades = totalUnidades - outros.totalUnidades
-        outros.estoqueUnidades += diffUnidades
-
-        outros.nome = request.nome
-        outros.quantidadeEntrada = request.quantidadeEntrada
-        outros.precoEntrada = request.precoEntrada
-        outros.unidadesPorItem = request.unidadesPorItem
-        outros.totalUnidades = totalUnidades
-        outros.precoPorUnidade = precoPorUnidade
-
-        return outrosRepository.save(outros).toResponse()
-    }
-
-    @LogCall
-    @Transactional
-    fun deletarOutros(id: UUID) {
-        val outros = outrosRepository.findByIdOrNull(id)
-            ?: throw EntidadeNaoEncontradaException("Outros não encontrado")
-        outrosRepository.delete(outros)
     }
 }

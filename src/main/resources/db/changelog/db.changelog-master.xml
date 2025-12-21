@@ -25,4 +25,6 @@
     <include file="db/changelog/db.changelog-3.4-despesa-observacao.xml"/>
     <include file="db/changelog/db.changelog-3.5-venda-abater-estoque.xml"/>
     <include file="db/changelog/db.changelog-3.6-parametros-calculo.xml"/>
+    <include file="db/changelog/db.changelog-4.0-multi-empresa.xml"/>
+    <include file="db/changelog/db.changelog-4.1-clientes.xml"/>
 </databaseChangeLog>

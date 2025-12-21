@@ -1,5 +1,6 @@
 package br.com.pinguimice.admin.entity
 
+import br.com.storehouse.data.entities.Filial
 import jakarta.persistence.*
 import java.time.LocalDateTime
 import java.util.*
@@ -25,6 +26,10 @@ class EstoqueGelinho(
 
     @Column(nullable = false)
     var quantidade: Int,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "filial_id", nullable = false)
+    var filial: Filial,
 
     @Column(name = "ultima_atualizacao", nullable = false)
     var ultimaAtualizacao: LocalDateTime = LocalDateTime.now()

@@ -5,7 +5,8 @@ import java.util.*
 
 data class SaborRequest(
     val nome: String,
-    val corHex: String? = null
+    val corHex: String? = null,
+    val usaAcucar: Boolean? = false
 )
 
 data class SaborResponse(
@@ -13,5 +14,6 @@ data class SaborResponse(
     val nome: String,
     val corHex: String?,
     val ativo: Boolean,
+    val usaAcucar: Boolean,
     val dataCriacao: LocalDateTime
 )

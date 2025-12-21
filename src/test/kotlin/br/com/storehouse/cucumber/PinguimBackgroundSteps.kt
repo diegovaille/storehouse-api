@@ -1,5 +1,6 @@
 package br.com.storehouse.cucumber
 
+import br.com.pinguimice.admin.entity.Cliente
 import br.com.pinguimice.admin.entity.EstoqueGelinho
 import br.com.pinguimice.admin.entity.RegiaoVenda
 import br.com.pinguimice.admin.entity.Sabor
@@ -7,6 +8,7 @@ import br.com.storehouse.data.SharedTestData
 import br.com.storehouse.data.entities.*
 import br.com.storehouse.data.model.UsuarioAutenticado
 import io.cucumber.java.en.Given
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
@@ -68,13 +70,16 @@ class PinguimBackgroundSteps(
             organizacao = organizacao
         )
         filialRepository.save(filial)
+
+        sharedTestData.filial = filial
     }
 
     @Given("que existe um sabor {string} com cor {string}")
     fun queExisteUmSaborComCor(nome: String, cor: String) {
         val sabor = Sabor(
             nome = nome,
-            corHex = cor
+            corHex = cor,
+            filial = sharedTestData.filial!!
         )
         saborRepository.save(sabor)
     }
@@ -85,7 +90,8 @@ class PinguimBackgroundSteps(
         val estoque = EstoqueGelinho(
             sabor = sabor,
             quantidade = quantidade,
-            ultimaAtualizacao = LocalDateTime.now()
+            ultimaAtualizacao = LocalDateTime.now(),
+            filial = sharedTestData.filial!!
         )
         estoqueGelinhoRepository.save(estoque)
     }
@@ -93,7 +99,8 @@ class PinguimBackgroundSteps(
     @Given("que existe uma região de venda {string}")
     fun queExisteUmaRegiaoDeVenda(nome: String) {
         val regiao = RegiaoVenda(
-            nome = nome
+            nome = nome,
+            filial = sharedTestData.filial!!
         )
         regiaoVendaRepository.save(regiao)
     }
@@ -105,12 +112,23 @@ class PinguimBackgroundSteps(
         val userDetails = UsuarioAutenticado(
             email = usuario.email,
             perfil = "ADMIN",
-            organizacaoId = UUID.randomUUID(),
-            filialId = UUID.randomUUID()
+            organizacaoId = sharedTestData.filial!!.organizacao.id,
+            filialId = sharedTestData.filial!!.id
         )
         val auth = UsernamePasswordAuthenticationToken(userDetails, null, userDetails.authorities)
         SecurityContextHolder.getContext().authentication = auth
 
         sharedTestData.usuarioAutenticado = userDetails
+    }
+
+    @Given("que existe um cliente {string} na região {string}")
+    fun queExisteUmClienteNaRegiao(nomeCliente: String, nomeRegiao: String) {
+        val regiao = regiaoVendaRepository.findAll().first { it.nome == nomeRegiao }
+        val cliente = Cliente(
+            nome = nomeCliente,
+            regiao = regiao,
+            filial = sharedTestData.filial!!
+        )
+        clienteRepository.save(cliente)
     }
 }

@@ -6,10 +6,13 @@ import java.time.LocalDateTime
 import java.util.*
 
 interface DespesaRepository : JpaRepository<Despesa, UUID> {
-    fun findByDataCriacaoBetweenOrderByDataCriacaoDesc(
+    fun findByFilialIdAndDataCriacaoBetweenOrderByDataCriacaoDesc(
+        filialId: UUID,
         inicio: LocalDateTime,
         fim: LocalDateTime
     ): List<Despesa>
-    
-    fun findAllByOrderByDataCriacaoDesc(): List<Despesa>
+
+    fun findAllByFilialIdOrderByDataCriacaoDesc(filialId: UUID): List<Despesa>
+
+    fun findByIdAndFilialId(id: UUID, filialId: UUID): Despesa?
 }

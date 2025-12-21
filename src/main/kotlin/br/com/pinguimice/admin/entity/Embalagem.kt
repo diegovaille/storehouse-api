@@ -1,5 +1,6 @@
 package br.com.pinguimice.admin.entity
 
+import br.com.storehouse.data.entities.Filial
 import jakarta.persistence.*
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -32,6 +33,10 @@ class Embalagem(
 
     @Column(name = "estoque_unidades", nullable = false)
     var estoqueUnidades: Int,
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "filial_id", nullable = false)
+    var filial: Filial,
 
     @Column(name = "data_criacao", nullable = false)
     var dataCriacao: LocalDateTime = LocalDateTime.now()

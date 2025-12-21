@@ -4,6 +4,7 @@ import br.com.pinguimice.admin.entity.Despesa
 import br.com.pinguimice.admin.model.DespesaRequest
 import br.com.pinguimice.admin.model.DespesaResponse
 import br.com.pinguimice.admin.repository.DespesaRepository
+import br.com.storehouse.data.repository.FilialRepository
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
 import br.com.storehouse.logging.LogCall
 import org.springframework.data.repository.findByIdOrNull
@@ -16,17 +17,18 @@ import java.util.*
 @Service
 class DespesaService(
     private val despesaRepository: DespesaRepository,
-    private val storageService: br.com.storehouse.service.StorageService
+    private val storageService: br.com.storehouse.service.StorageService,
+    private val filialRepository: FilialRepository
 ) {
 
     @LogCall
-    fun listarDespesas(inicio: String?, fim: String?): List<DespesaResponse> {
+    fun listarDespesas(inicio: String?, fim: String?, filialId: UUID): List<DespesaResponse> {
         val despesas = if (inicio != null && fim != null) {
             val dataInicio = LocalDateTime.parse("${inicio}T00:00:00")
             val dataFim = LocalDateTime.parse("${fim}T23:59:59")
-            despesaRepository.findByDataCriacaoBetweenOrderByDataCriacaoDesc(dataInicio, dataFim)
+            despesaRepository.findByFilialIdAndDataCriacaoBetweenOrderByDataCriacaoDesc(filialId, dataInicio, dataFim)
         } else {
-            despesaRepository.findAllByOrderByDataCriacaoDesc()
+            despesaRepository.findAllByFilialIdOrderByDataCriacaoDesc(filialId)
         }
 
         return despesas.map { it.toResponse() }
@@ -34,38 +36,55 @@ class DespesaService(
 
     @LogCall
     @Transactional
-    fun criarDespesa(request: DespesaRequest, arquivo: ByteArray? = null, nomeArquivo: String? = null, contentType: String? = null): DespesaResponse {
+    fun criarDespesa(
+        request: DespesaRequest,
+        filialId: UUID,
+        arquivo: ByteArray? = null,
+        nomeArquivo: String? = null,
+        contentType: String? = null
+    ): DespesaResponse {
+        val filial = filialRepository.findById(filialId)
+            .orElseThrow { EntidadeNaoEncontradaException("Filial não encontrada") }
+
         val despesaId = UUID.randomUUID()
-        
+
         val anexoUrl = if (arquivo != null && nomeArquivo != null && contentType != null) {
             storageService.uploadAnexoDespesa(despesaId, nomeArquivo, arquivo, contentType)
         } else {
             request.anexoUrl
         }
 
-    val despesa = Despesa(
-        id = despesaId,
-        descricao = request.descricao,
-        valor = request.valor,
-        dataVencimento = request.dataVencimento?.let { LocalDate.parse(it) },
-        dataPagamento = request.dataPagamento?.let { LocalDate.parse(it) },
-        anexoUrl = anexoUrl,
-        observacao = request.observacao
-    )
+        val despesa = Despesa(
+            id = despesaId,
+            descricao = request.descricao,
+            valor = request.valor,
+            dataVencimento = request.dataVencimento?.let { LocalDate.parse(it) },
+            dataPagamento = request.dataPagamento?.let { LocalDate.parse(it) },
+            anexoUrl = anexoUrl,
+            observacao = request.observacao,
+            filial = filial
+        )
 
         return despesaRepository.save(despesa).toResponse()
     }
 
     @LogCall
     @Transactional
-    fun atualizarDespesa(id: UUID, request: DespesaRequest, arquivo: ByteArray? = null, nomeArquivo: String? = null, contentType: String? = null): DespesaResponse {
-        val despesa = despesaRepository.findByIdOrNull(id)
+    fun atualizarDespesa(
+        id: UUID,
+        request: DespesaRequest,
+        filialId: UUID,
+        arquivo: ByteArray? = null,
+        nomeArquivo: String? = null,
+        contentType: String? = null
+    ): DespesaResponse {
+        val despesa = despesaRepository.findByIdAndFilialId(id, filialId)
             ?: throw EntidadeNaoEncontradaException("Despesa não encontrada")
 
         val anexoUrl = if (arquivo != null && nomeArquivo != null && contentType != null) {
             storageService.uploadAnexoDespesa(id, nomeArquivo, arquivo, contentType)
         } else {
-            request.anexoUrl ?: despesa.anexoUrl // Keep existing if not provided and not in request
+            request.anexoUrl ?: despesa.anexoUrl
         }
 
         despesa.descricao = request.descricao
@@ -80,8 +99,8 @@ class DespesaService(
 
     @LogCall
     @Transactional
-    fun deletarDespesa(id: UUID) {
-        val despesa = despesaRepository.findByIdOrNull(id)
+    fun deletarDespesa(id: UUID, filialId: UUID) {
+        val despesa = despesaRepository.findByIdAndFilialId(id, filialId)
             ?: throw EntidadeNaoEncontradaException("Despesa não encontrada")
 
         despesaRepository.delete(despesa)

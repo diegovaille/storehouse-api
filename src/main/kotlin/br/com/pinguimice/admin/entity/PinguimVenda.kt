@@ -1,5 +1,6 @@
 package br.com.pinguimice.admin.entity
 
+import br.com.storehouse.data.entities.Filial
 import jakarta.persistence.*
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -20,12 +21,9 @@ class PinguimVenda(
     @Column(name = "data_venda", nullable = false)
     var dataVenda: LocalDateTime = LocalDateTime.now(),
 
-    @Column(length = 255)
-    var cliente: String? = null,
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "regiao_id", nullable = false)
-    var regiao: RegiaoVenda,
+    @JoinColumn(name = "cliente_id")
+    var cliente: Cliente? = null,
 
     @Column(name = "usuario_id", nullable = false)
     var usuarioId: UUID,
@@ -33,6 +31,10 @@ class PinguimVenda(
     @Column(name = "abater_estoque", nullable = false)
     var abaterEstoque: Boolean = true,
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "filial_id", nullable = false)
+    var filial: Filial,
+
     @OneToMany(mappedBy = "venda", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var itens: List<PinguimVendaItem> = mutableListOf()
+    var itens: MutableList<PinguimVendaItem> = mutableListOf()
 )

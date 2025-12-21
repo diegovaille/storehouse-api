@@ -42,7 +42,7 @@ class SecurityConfig(
                 auth
                     .requestMatchers("/api/oauth2/**").permitAll()
                     .requestMatchers("/api/auth/**").permitAll()
-                    .requestMatchers("/api/pinguimice-admin/auth/**").permitAll()
+                    .requestMatchers("/api/pinguim-admin/auth/**").permitAll()
                     .requestMatchers("/favicon.ico").permitAll()
                     .requestMatchers("/login/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/produtos/tipos").permitAll()
