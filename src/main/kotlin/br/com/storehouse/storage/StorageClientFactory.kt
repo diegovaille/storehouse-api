@@ -56,7 +56,7 @@ class StorageClientFactory(private val props: ProjectBucketProperties) {
             )
             .build()
 
-        return AwsStorageClient(client, bucket.name)
+        return AwsStorageClient(client, bucket.name, bucket.endpoint, bucket.region)
     }
 
     private fun buildOracleClient(bucket: ProjectBucketProperties.BucketConfig): StorageClient {

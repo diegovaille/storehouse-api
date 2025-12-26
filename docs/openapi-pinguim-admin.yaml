@@ -74,6 +74,35 @@ paths:
               schema:
                 $ref: '#/components/schemas/SaborResponse'
 
+  /api/pinguim-admin/sabores/{id}:
+    put:
+      tags:
+        - Sabores
+      summary: Atualizar sabor
+      operationId: atualizarSabor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaborRequest'
+      responses:
+        '200':
+          description: Sabor atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaborResponse'
+        '404':
+          description: Sabor não encontrado
+
   /api/pinguim-admin/regioes:
     get:
       tags:

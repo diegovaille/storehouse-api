@@ -16,6 +16,8 @@ class DefaultStorageService(private val storageClientFactory: StorageClientFacto
 
     @Value("\${project.storage.default-bucket}")
     private lateinit var imgBucket: String
+    @Value("\${project.storage.despesa-bucket}")
+    private lateinit var despesaBucket: String
 
     override fun uploadImagemProduto(filialId: UUID, codigoBarras: String, imagem: ByteArray): String {
         val client = storageClientFactory.get(imgBucket)
@@ -33,11 +35,11 @@ class DefaultStorageService(private val storageClientFactory: StorageClientFacto
     }
 
     override fun uploadAnexoDespesa(despesaId: UUID, nomeArquivo: String, arquivo: ByteArray, contentType: String): String {
-        val client = storageClientFactory.get(imgBucket)
+        val client = storageClientFactory.get(despesaBucket)
         val extensao = nomeArquivo.substringAfterLast('.', "dat")
         val key = "despesas/$despesaId.$extensao"
 
-        logger.info("Uploading expense attachment to: bucket=$imgBucket, key=$key")
+        logger.info("Uploading expense attachment to: bucket=$despesaBucket, key=$key")
         logger.info("File size: ${arquivo.size} bytes")
         logger.info("Content type: $contentType")
 
