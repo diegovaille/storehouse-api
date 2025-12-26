@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- Criar tabela cliente -->
+    <changeSet id="create-cliente-table" author="diegovaille">
+        <createTable tableName="cliente" schemaName="pinguim">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nome" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="endereco" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="telefone" type="VARCHAR(20)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="cnpj" type="VARCHAR(18)">
+                <constraints nullable="true" unique="true"/>
+            </column>
+            <column name="regiao_id" type="UUID">
+                <constraints nullable="true"/>
+            </column>
+            <column name="bloqueado" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motivo_bloqueio" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="filial_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_criacao" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Adicionar Foreign Keys -->
+        <addForeignKeyConstraint
+            baseTableName="cliente"
+            baseColumnNames="regiao_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="regiao_venda"
+            referencedTableSchemaName="pinguim"
+            referencedColumnNames="id"
+            constraintName="fk_cliente_regiao"
+            onDelete="SET NULL"/>
+
+        <addForeignKeyConstraint
+            baseTableName="cliente"
+            baseColumnNames="filial_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="filial"
+            referencedColumnNames="id"
+            constraintName="fk_cliente_filial"
+            onDelete="RESTRICT"/>
+
+        <!-- Criar índices -->
+        <createIndex indexName="idx_cliente_filial" tableName="cliente" schemaName="pinguim">
+            <column name="filial_id"/>
+        </createIndex>
+
+        <createIndex indexName="idx_cliente_bloqueado" tableName="cliente" schemaName="pinguim">
+            <column name="bloqueado"/>
+        </createIndex>
+
+        <createIndex indexName="idx_cliente_cnpj" tableName="cliente" schemaName="pinguim">
+            <column name="cnpj"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Adicionar referência de cliente na tabela venda -->
+    <changeSet id="add-cliente-to-venda" author="diegovaille">
+        <addColumn tableName="venda" schemaName="pinguim">
+            <column name="cliente_id" type="UUID">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addForeignKeyConstraint
+            baseTableName="venda"
+            baseColumnNames="cliente_id"
+            baseTableSchemaName="pinguim"
+            referencedTableName="cliente"
+            referencedTableSchemaName="pinguim"
+            referencedColumnNames="id"
+            constraintName="fk_venda_cliente"
+            onDelete="SET NULL"/>
+
+        <createIndex indexName="idx_venda_cliente" tableName="venda" schemaName="pinguim">
+            <column name="cliente_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Remover coluna cliente (String) da tabela venda (antes existia como VARCHAR) -->
+    <changeSet id="remove-cliente-string-from-venda" author="diegovaille">
+        <dropColumn tableName="venda" schemaName="pinguim" columnName="cliente"/>
+    </changeSet>
+
+    <!-- Remover referência de região da venda: a região passa a vir do cliente.regiao -->
+    <changeSet id="remove-regiao-from-venda" author="diegovaille">
+        <dropForeignKeyConstraint baseTableName="venda" baseTableSchemaName="pinguim" constraintName="fk_venda_regiao"/>
+        <dropColumn tableName="venda" schemaName="pinguim" columnName="regiao_id"/>
+    </changeSet>
+
+</databaseChangeLog>
+

@@ -4,4 +4,7 @@ import br.com.storehouse.data.entities.Organizacao
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.*
 
-interface OrganizacaoRepository : JpaRepository<Organizacao, UUID>
+interface OrganizacaoRepository : JpaRepository<Organizacao, UUID> {
+    fun findByCnpj(cnpj: String): Organizacao?
+    fun findByNome(nome: String): List<Organizacao>
+}

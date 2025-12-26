@@ -3,6 +3,10 @@ app:
   frontend-base-url: https://primeira.app.br
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 15MB
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST}:5432/storehousedb
     username: ${POSTGRES_USER}
@@ -53,9 +57,18 @@ server:
 
 project:
   storage:
+    despesa-bucket: despesas-files
     default-bucket: storehouse-images
     buckets:
       - name: storehouse-images
+        provider: oracle
+        region: sa-saopaulo-1
+        namespace: grz9zu8hdz2q
+        user-id: ${OCI_USER_ID}
+        tenant-id: ${OCI_TENANCY_ID}
+        fingerprint: ${OCI_FINGERPRINT}
+        private-key: ${OCI_PRIVATE_KEY_PATH}
+      - name: despesas-files
         provider: oracle
         region: sa-saopaulo-1
         namespace: grz9zu8hdz2q

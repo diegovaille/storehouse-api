@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="create-parametro-calculo-table" author="diegovaille">
+        <createTable tableName="parametro_calculo" schemaName="pinguim">
+            <column name="chave" type="VARCHAR(100)">
+                <constraints primaryKey="true" nullable="false" unique="true"/>
+            </column>
+            <column name="valor" type="DOUBLE PRECISION">
+                <constraints nullable="false"/>
+            </column>
+            <column name="descricao" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="data_atualizacao" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="insert-parametros-default" author="diegovaille">
+        <insert tableName="parametro_calculo" schemaName="pinguim">
+            <column name="chave" value="UNIDADES_POR_EMBALAGEM_KG"/>
+            <column name="valor" value="700"/>
+            <column name="descricao" value="Quantidade de unidades por KG de embalagem"/>
+            <column name="data_atualizacao" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="parametro_calculo" schemaName="pinguim">
+            <column name="chave" value="TOTAL_PACOTES_POR_CAIXA"/>
+            <column name="valor" value="120"/>
+            <column name="descricao" value="Total de pacotes que cabem em uma caixa"/>
+            <column name="data_atualizacao" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="parametro_calculo" schemaName="pinguim">
+            <column name="chave" value="TOTAL_UNIDADE_POR_KG"/>
+            <column name="valor" value="266"/>
+            <column name="descricao" value="Total de unidades produzidas por KG de matéria-prima"/>
+            <column name="data_atualizacao" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="parametro_calculo" schemaName="pinguim">
+            <column name="chave" value="TOTAL_UNIDADE_ACUCAR_POR_KG"/>
+            <column name="valor" value="222"/>
+            <column name="descricao" value="Total de unidades produzidas por KG de açúcar (para sabores como Coco e Maçã Verde)"/>
+            <column name="data_atualizacao" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <insert tableName="parametro_calculo" schemaName="pinguim">
+            <column name="chave" value="UNIDADES_POR_PACOTE"/>
+            <column name="valor" value="4.4"/>
+            <column name="descricao" value="Quantidade de unidades por pacote"/>
+            <column name="data_atualizacao" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>
+

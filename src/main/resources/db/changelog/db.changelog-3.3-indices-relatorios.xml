@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- Índices para otimizar relatórios -->
+    <changeSet id="create-indexes-for-reports" author="diegovaille">
+
+        <!-- Índice para data_venda na tabela de vendas do Pinguim Ice -->
+        <createIndex indexName="idx_pinguim_venda_data_venda"
+                     tableName="venda"
+                     schemaName="pinguim">
+            <column name="data_venda"/>
+        </createIndex>
+
+        <!-- Índice composto para data_venda + regiao_id (útil para filtros por região) -->
+        <createIndex indexName="idx_pinguim_venda_data_regiao"
+                     tableName="venda"
+                     schemaName="pinguim">
+            <column name="data_venda"/>
+            <column name="regiao_id"/>
+        </createIndex>
+
+        <!-- Índice para data_criacao na tabela de despesas -->
+        <createIndex indexName="idx_despesa_data_criacao"
+                     tableName="despesa"
+                     schemaName="pinguim">
+            <column name="data_criacao"/>
+        </createIndex>
+
+        <!-- Índice para data_pagamento na tabela de despesas (útil para filtrar pagas/pendentes) -->
+        <createIndex indexName="idx_despesa_data_pagamento"
+                     tableName="despesa"
+                     schemaName="pinguim">
+            <column name="data_pagamento"/>
+        </createIndex>
+
+        <!-- Índice para data_producao na tabela de produção -->
+        <createIndex indexName="idx_producao_data_producao"
+                     tableName="producao"
+                     schemaName="pinguim">
+            <column name="data_producao"/>
+        </createIndex>
+
+        <!-- Índice composto para data_producao + sabor_id (útil para relatórios por sabor) -->
+        <createIndex indexName="idx_producao_data_sabor"
+                     tableName="producao"
+                     schemaName="pinguim">
+            <column name="data_producao"/>
+            <column name="sabor_id"/>
+        </createIndex>
+
+        <!-- Índice para sabor_id na tabela venda_item (útil para agregações por sabor) -->
+        <createIndex indexName="idx_venda_item_sabor"
+                     tableName="venda_item"
+                     schemaName="pinguim">
+            <column name="sabor_id"/>
+        </createIndex>
+
+        <!-- Índice composto para venda_id + sabor_id na tabela venda_item -->
+        <createIndex indexName="idx_venda_item_venda_sabor"
+                     tableName="venda_item"
+                     schemaName="pinguim">
+            <column name="venda_id"/>
+            <column name="sabor_id"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>
+

@@ -6,6 +6,7 @@ import com.oracle.bmc.auth.SimplePrivateKeySupplier
 import com.oracle.bmc.objectstorage.ObjectStorageClient
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
@@ -14,6 +15,7 @@ import software.amazon.awssdk.services.s3.S3Configuration
 import java.net.URI
 
 @Component
+@Profile("!test")
 class StorageClientFactory(private val props: ProjectBucketProperties) {
 
     private val logger = LoggerFactory.getLogger(StorageClientFactory::class.java)
@@ -54,7 +56,7 @@ class StorageClientFactory(private val props: ProjectBucketProperties) {
             )
             .build()
 
-        return AwsStorageClient(client, bucket.name)
+        return AwsStorageClient(client, bucket.name, bucket.endpoint, bucket.region)
     }
 
     private fun buildOracleClient(bucket: ProjectBucketProperties.BucketConfig): StorageClient {

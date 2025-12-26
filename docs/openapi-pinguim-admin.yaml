@@ -1,0 +1,2027 @@
+openapi: 3.0.3
+info:
+  title: Pinguim Admin API
+  description: API para gerenciamento administrativo do Pinguim Ice - Fábrica de Gelinhos
+  version: 1.0.0
+  contact:
+    name: Pinguim Ice Team
+    email: contato@pinguimice.com.br
+
+servers:
+  - url: http://localhost:8080
+    description: Local Development
+  - url: https://api.pinguimice.com.br
+    description: Production
+
+tags:
+  - name: Sabores
+    description: Gerenciamento de sabores de gelinhos
+  - name: Regiões
+    description: Gerenciamento de regiões de venda
+  - name: Estoque
+    description: Gerenciamento de estoque (matéria prima, embalagem, outros)
+  - name: Produção
+    description: Registro e gerenciamento de produção
+  - name: Despesas
+    description: Gerenciamento de despesas
+  - name: Vendas
+    description: Gerenciamento de vendas
+  - name: Clientes
+    description: Gerenciamento de clientes
+  - name: Relatórios
+    description: Relatórios gerenciais com análises e agregações
+  - name: Parâmetros de Cálculo
+    description: Gerenciamento de parâmetros/fórmulas usados nos cálculos de estoque
+
+paths:
+  /api/pinguim-admin/sabores:
+    get:
+      tags:
+        - Sabores
+      summary: Listar sabores
+      operationId: listarSabores
+      parameters:
+        - name: apenasAtivos
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Lista de sabores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SaborResponse'
+    post:
+      tags:
+        - Sabores
+      summary: Criar novo sabor
+      operationId: criarSabor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaborRequest'
+            examples:
+              saborSemAcucar:
+                summary: Sabor sem açúcar
+                value:
+                  nome: 'Morango'
+                  corHex: '#FF3366'
+                  usaAcucar: false
+              saborComAcucar:
+                summary: Sabor que usa açúcar
+                value:
+                  nome: 'Coco'
+                  corHex: '#FFFFFF'
+                  usaAcucar: true
+      responses:
+        '201':
+          description: Sabor criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaborResponse'
+
+  /api/pinguim-admin/sabores/{id}:
+    put:
+      tags:
+        - Sabores
+      summary: Atualizar sabor
+      operationId: atualizarSabor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaborRequest'
+            examples:
+              atualizarUsaAcucar:
+                summary: Atualizar flag usaAcucar
+                value:
+                  nome: 'Maçã Verde'
+                  corHex: '#00CC66'
+                  usaAcucar: true
+      responses:
+        '200':
+          description: Sabor atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaborResponse'
+        '404':
+          description: Sabor não encontrado
+
+  /api/pinguim-admin/regioes:
+    get:
+      tags:
+        - Regiões
+      summary: Listar regiões de venda
+      operationId: listarRegioes
+      parameters:
+        - name: apenasAtivos
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Lista de regiões
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegiaoVendaResponse'
+    post:
+      tags:
+        - Regiões
+      summary: Criar nova região
+      operationId: criarRegiao
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegiaoVendaRequest'
+      responses:
+        '201':
+          description: Região criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegiaoVendaResponse'
+
+  /api/pinguim-admin/regioes/{id}:
+    put:
+      tags:
+        - Regiões
+      summary: Atualizar região
+      operationId: atualizarRegiao
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegiaoVendaRequest'
+      responses:
+        '200':
+          description: Região atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegiaoVendaResponse'
+
+  /api/pinguim-admin/materia-prima:
+    get:
+      tags:
+        - Estoque
+      summary: Listar matéria prima
+      operationId: listarMateriaPrima
+      responses:
+        '200':
+          description: Lista de matéria prima
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MateriaPrimaResponse'
+    post:
+      tags:
+        - Estoque
+      summary: Criar matéria prima
+      operationId: criarMateriaPrima
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MateriaPrimaRequest'
+      responses:
+        '201':
+          description: Matéria prima criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MateriaPrimaResponse'
+
+  /api/pinguim-admin/materia-prima/{id}:
+    put:
+      tags:
+        - Estoque
+      summary: Atualizar matéria prima
+      operationId: atualizarMateriaPrima
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MateriaPrimaRequest'
+      responses:
+        '200':
+          description: Matéria prima atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MateriaPrimaResponse'
+
+  /api/pinguim-admin/embalagem:
+    get:
+      tags:
+        - Estoque
+      summary: Listar embalagens
+      operationId: listarEmbalagens
+      responses:
+        '200':
+          description: Lista de embalagens
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmbalagemResponse'
+    post:
+      tags:
+        - Estoque
+      summary: Criar embalagem
+      operationId: criarEmbalagem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbalagemRequest'
+      responses:
+        '201':
+          description: Embalagem criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbalagemResponse'
+
+  /api/pinguim-admin/embalagem/{id}:
+    put:
+      tags:
+        - Estoque
+      summary: Atualizar embalagem
+      operationId: atualizarEmbalagem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbalagemRequest'
+      responses:
+        '200':
+          description: Embalagem atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbalagemResponse'
+
+  /api/pinguim-admin/outros:
+    get:
+      tags:
+        - Estoque
+      summary: Listar outros itens
+      operationId: listarOutros
+      responses:
+        '200':
+          description: Lista de outros itens
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutrosResponse'
+    post:
+      tags:
+        - Estoque
+      summary: Criar outros itens
+      operationId: criarOutros
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutrosRequest'
+      responses:
+        '201':
+          description: Item criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutrosResponse'
+
+  /api/pinguim-admin/estoque-gelinho:
+    get:
+      tags:
+        - Estoque
+      summary: Listar estoque de gelinhos
+      operationId: listarEstoqueGelinho
+      responses:
+        '200':
+          description: Lista de estoque de gelinhos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EstoqueGelinhoResponse'
+
+  /api/pinguim-admin/producao:
+    get:
+      tags:
+        - Produção
+      summary: Listar produção
+      operationId: listarProducao
+      parameters:
+        - name: inicio
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: fim
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lista de produções
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProducaoResponse'
+    post:
+      tags:
+        - Produção
+      summary: Registrar produção
+      operationId: registrarProducao
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProducaoRequest'
+      responses:
+        '201':
+          description: Produção registrada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProducaoResponse'
+
+  /api/pinguim-admin/producao/{id}:
+    delete:
+      tags:
+        - Produção
+      summary: Excluir produção
+      operationId: excluirProducao
+      description: Exclui uma produção e reverte as deduções de estoque (se aplicável)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Produção excluída com sucesso
+
+  /api/pinguim-admin/despesas:
+    get:
+      tags:
+        - Despesas
+      summary: Listar despesas
+      operationId: listarDespesas
+      parameters:
+        - name: inicio
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: fim
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lista de despesas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DespesaResponse'
+    post:
+      tags:
+        - Despesas
+      summary: Criar despesa
+      operationId: criarDespesa
+      description: |
+        Suporta dois formatos:
+        - application/json (sem upload)
+        - multipart/form-data (com upload opcional)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DespesaRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - dados
+              properties:
+                dados:
+                  $ref: '#/components/schemas/DespesaRequest'
+                arquivo:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Despesa criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DespesaResponse'
+
+  /api/pinguim-admin/despesas/{id}:
+    put:
+      tags:
+        - Despesas
+      summary: Atualizar despesa
+      operationId: atualizarDespesa
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DespesaRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - dados
+              properties:
+                dados:
+                  $ref: '#/components/schemas/DespesaRequest'
+                arquivo:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Despesa atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DespesaResponse'
+    delete:
+      tags:
+        - Despesas
+      summary: Deletar despesa
+      operationId: deletarDespesa
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Despesa deletada com sucesso
+
+  /api/pinguim-admin/vendas:
+    get:
+      tags:
+        - Vendas
+      summary: Listar vendas
+      operationId: listarVendas
+      parameters:
+        - name: inicio
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: fim
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Lista de vendas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PinguimVendaResponse'
+    post:
+      tags:
+        - Vendas
+      summary: Registrar venda
+      operationId: registrarVenda
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PinguimVendaRequest'
+      responses:
+        '201':
+          description: Venda registrada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinguimVendaResponse'
+
+  /api/pinguim-admin/vendas/{id}:
+    put:
+      tags:
+        - Vendas
+      summary: Editar venda
+      operationId: editarVenda
+      description: Edita uma venda existente com análise inteligente de mudança de estoque
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PinguimVendaRequest'
+      responses:
+        '200':
+          description: Venda editada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinguimVendaResponse'
+        '404':
+          description: Venda não encontrada
+    delete:
+      tags:
+        - Vendas
+      summary: Cancelar venda
+      operationId: cancelarVenda
+      description: Cancela uma venda e restaura o estoque se necessário
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Venda cancelada com sucesso
+
+  /api/pinguim-admin/vendas/{id}/pagar:
+    patch:
+      tags:
+        - Vendas
+      summary: Marcar venda como paga
+      operationId: marcarVendaComoPaga
+      description: Atualiza totalPago para ser igual ao total, marcando a venda como completamente paga
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Venda marcada como paga com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinguimVendaResponse'
+        '404':
+          description: Venda não encontrada
+
+  /api/pinguim-admin/clientes:
+    get:
+      tags:
+        - Clientes
+      summary: Listar clientes
+      operationId: listarClientes
+      parameters:
+        - name: apenasAtivos
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Filtrar apenas clientes não bloqueados
+      responses:
+        '200':
+          description: Lista de clientes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClienteResponse'
+    post:
+      tags:
+        - Clientes
+      summary: Criar cliente
+      operationId: criarCliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClienteRequest'
+      responses:
+        '201':
+          description: Cliente criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+
+  /api/pinguim-admin/clientes/{id}:
+    get:
+      tags:
+        - Clientes
+      summary: Buscar cliente por ID
+      operationId: buscarClientePorId
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Cliente encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+        '404':
+          description: Cliente não encontrado
+    put:
+      tags:
+        - Clientes
+      summary: Atualizar cliente
+      operationId: atualizarCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClienteRequest'
+      responses:
+        '200':
+          description: Cliente atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+    delete:
+      tags:
+        - Clientes
+      summary: Deletar cliente
+      operationId: deletarCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Cliente deletado com sucesso
+
+  /api/pinguim-admin/clientes/{id}/bloquear:
+    patch:
+      tags:
+        - Clientes
+      summary: Bloquear cliente
+      operationId: bloquearCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                motivo:
+                  type: string
+                  description: Motivo do bloqueio
+      responses:
+        '200':
+          description: Cliente bloqueado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+
+  /api/pinguim-admin/clientes/{id}/desbloquear:
+    patch:
+      tags:
+        - Clientes
+      summary: Desbloquear cliente
+      operationId: desbloquearCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Cliente desbloqueado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+
+  /api/pinguim-admin/relatorios/despesas:
+    get:
+      tags:
+        - Relatórios
+      summary: Gerar relatório de despesas
+      operationId: gerarRelatorioDespesas
+      description: Retorna análise detalhada de despesas no período com agregações por categoria, semana e mês
+      parameters:
+        - name: inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de início (YYYY-MM-DD)
+          example: '2024-11-20'
+        - name: fim
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de fim (YYYY-MM-DD)
+          example: '2024-12-20'
+      responses:
+        '200':
+          description: Relatório de despesas gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioDespesasResponse'
+
+  /api/pinguim-admin/relatorios/vendas:
+    get:
+      tags:
+        - Relatórios
+      summary: Gerar relatório de vendas
+      operationId: gerarRelatorioVendas
+      description: Retorna análise completa de vendas por sabor, região, período e top clientes
+      parameters:
+        - name: inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de início (YYYY-MM-DD)
+          example: '2024-11-20'
+        - name: fim
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de fim (YYYY-MM-DD)
+          example: '2024-12-20'
+      responses:
+        '200':
+          description: Relatório de vendas gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioVendasResponse'
+
+  /api/pinguim-admin/relatorios/estoque:
+    get:
+      tags:
+        - Relatórios
+      summary: Gerar relatório de estoque
+      operationId: gerarRelatorioEstoque
+      description: Retorna snapshot atual do estoque de matéria-prima, embalagens e gelinhos com alertas de níveis baixos
+      responses:
+        '200':
+          description: Relatório de estoque gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioEstoqueResponse'
+
+  /api/pinguim-admin/relatorios/producao:
+    get:
+      tags:
+        - Relatórios
+      summary: Gerar relatório de produção
+      operationId: gerarRelatorioProducao
+      description: Retorna análise de produção por sabor e período com médias diárias
+      parameters:
+        - name: inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de início (YYYY-MM-DD)
+          example: '2024-11-20'
+        - name: fim
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de fim (YYYY-MM-DD)
+          example: '2024-12-20'
+      responses:
+        '200':
+          description: Relatório de produção gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioProducaoResponse'
+
+  /api/pinguim-admin/relatorios/lucro:
+    get:
+      tags:
+        - Relatórios
+      summary: Gerar relatório de lucro
+      operationId: gerarRelatorioLucro
+      description: Retorna análise financeira completa com vendas, despesas, lucro líquido e margens por período
+      parameters:
+        - name: inicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de início (YYYY-MM-DD)
+          example: '2024-11-20'
+        - name: fim
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Data de fim (YYYY-MM-DD)
+          example: '2024-12-20'
+      responses:
+        '200':
+          description: Relatório de lucro gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioLucroResponse'
+
+  /api/pinguim-admin/parametros-calculo:
+    get:
+      tags:
+        - Parâmetros de Cálculo
+      summary: Listar todos os parâmetros de cálculo
+      operationId: listarParametrosCalculo
+      description: Retorna todos os parâmetros/fórmulas usados nos cálculos de estoque e produção
+      responses:
+        '200':
+          description: Lista de parâmetros retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParametroCalculoResponse'
+    post:
+      tags:
+        - Parâmetros de Cálculo
+      summary: Criar novo parâmetro
+      operationId: criarParametroCalculo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParametroCalculoRequest'
+            examples:
+              parametroDecimal:
+                summary: Parâmetro com valor decimal
+                value:
+                  chave: 'UNIDADES_POR_PACOTE'
+                  valor: 4.4
+                  descricao: 'Quantidade de unidades por pacote'
+              parametroInteiro:
+                summary: Parâmetro com valor inteiro
+                value:
+                  chave: 'TOTAL_UNIDADE_POR_KG'
+                  valor: 266
+                  descricao: 'Total de unidades produzidas por KG'
+      responses:
+        '201':
+          description: Parâmetro criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParametroCalculoResponse'
+
+  /api/pinguim-admin/parametros-calculo/{chave}:
+    get:
+      tags:
+        - Parâmetros de Cálculo
+      summary: Buscar parâmetro por chave
+      operationId: buscarParametroPorChave
+      parameters:
+        - name: chave
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 'TOTAL_UNIDADE_POR_KG'
+      responses:
+        '200':
+          description: Parâmetro encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParametroCalculoResponse'
+        '404':
+          description: Parâmetro não encontrado
+    put:
+      tags:
+        - Parâmetros de Cálculo
+      summary: Atualizar parâmetro
+      operationId: atualizarParametroCalculo
+      description: Atualiza o valor de um parâmetro. Aceita valores decimais (ex 4.4) ou inteiros (ex 266)
+      parameters:
+        - name: chave
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 'UNIDADES_POR_PACOTE'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParametroCalculoRequest'
+            examples:
+              atualizarDecimal:
+                summary: Atualizar com valor decimal
+                value:
+                  chave: 'UNIDADES_POR_PACOTE'
+                  valor: 4.5
+                  descricao: 'Quantidade de unidades por pacote (atualizado)'
+              atualizarInteiro:
+                summary: Atualizar com valor inteiro
+                value:
+                  chave: 'TOTAL_UNIDADE_POR_KG'
+                  valor: 280
+                  descricao: 'Total de unidades por KG (nova máquina)'
+      responses:
+        '200':
+          description: Parâmetro atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParametroCalculoResponse'
+        '404':
+          description: Parâmetro não encontrado
+
+components:
+  schemas:
+    SaborRequest:
+      type: object
+      required:
+        - nome
+      properties:
+        nome:
+          type: string
+          example: 'Coco'
+        corHex:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          example: '#FFFFFF'
+        usaAcucar:
+          type: boolean
+          nullable: true
+          default: false
+          example: true
+          description: Indica se o sabor utiliza açúcar como base na produção (pode ser omitido; padrão false)
+
+    SaborResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 'b9e6a706-ce3a-4d0e-ab90-93a308a137aa'
+        nome:
+          type: string
+          example: 'Coco'
+        corHex:
+          type: string
+          example: '#FFFFFF'
+        ativo:
+          type: boolean
+          example: true
+        usaAcucar:
+          type: boolean
+          example: true
+          description: Indica se o sabor utiliza açúcar como base na produção
+        dataCriacao:
+          type: string
+          format: date-time
+          example: '2025-12-26T10:00:00-03:00'
+
+    RegiaoVendaRequest:
+      type: object
+      required:
+        - nome
+      properties:
+        nome:
+          type: string
+        descricao:
+          type: string
+
+    RegiaoVendaResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        descricao:
+          type: string
+        ativo:
+          type: boolean
+        dataCriacao:
+          type: string
+          format: date-time
+
+    MateriaPrimaRequest:
+      type: object
+      required:
+        - nome
+        - tipoEntrada
+        - quantidadeEntrada
+        - precoEntrada
+      properties:
+        nome:
+          type: string
+        saborId:
+          type: string
+          format: uuid
+        tipoEntrada:
+          type: string
+          enum: [CAIXA, PACOTE, KG]
+        quantidadeEntrada:
+          type: number
+          format: decimal
+        precoEntrada:
+          type: number
+          format: decimal
+
+    MateriaPrimaResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        saborId:
+          type: string
+          format: uuid
+        saborNome:
+          type: string
+        tipoEntrada:
+          type: string
+          enum: [CAIXA, PACOTE, KG]
+        quantidadeEntrada:
+          type: number
+          format: decimal
+        precoEntrada:
+          type: number
+          format: decimal
+        totalUnidades:
+          type: integer
+          description: Total de unidades calculado automaticamente
+        precoPorUnidade:
+          type: number
+          format: decimal
+          description: Preço por unidade calculado automaticamente
+        estoqueUnidades:
+          type: integer
+          description: Estoque atual em unidades
+        dataCriacao:
+          type: string
+          format: date-time
+
+    EmbalagemRequest:
+      type: object
+      required:
+        - nome
+        - quantidadeKg
+        - precoKg
+      properties:
+        nome:
+          type: string
+        saborId:
+          type: string
+          format: uuid
+        quantidadeKg:
+          type: number
+          format: decimal
+        precoKg:
+          type: number
+          format: decimal
+
+    EmbalagemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        saborId:
+          type: string
+          format: uuid
+        saborNome:
+          type: string
+        quantidadeKg:
+          type: number
+          format: decimal
+        precoKg:
+          type: number
+          format: decimal
+        totalUnidades:
+          type: integer
+          description: Total de unidades (1kg = 700 unidades)
+        precoPorUnidade:
+          type: number
+          format: decimal
+        estoqueUnidades:
+          type: integer
+        dataCriacao:
+          type: string
+          format: date-time
+
+    OutrosRequest:
+      type: object
+      required:
+        - nome
+        - quantidadeEntrada
+        - precoEntrada
+        - unidadesPorItem
+      properties:
+        nome:
+          type: string
+        quantidadeEntrada:
+          type: integer
+        precoEntrada:
+          type: number
+          format: decimal
+        unidadesPorItem:
+          type: integer
+
+    OutrosResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        quantidadeEntrada:
+          type: integer
+        precoEntrada:
+          type: number
+          format: decimal
+        unidadesPorItem:
+          type: integer
+        totalUnidades:
+          type: integer
+        precoPorUnidade:
+          type: number
+          format: decimal
+        estoqueUnidades:
+          type: integer
+        dataCriacao:
+          type: string
+          format: date-time
+
+    EstoqueGelinhoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        saborId:
+          type: string
+          format: uuid
+        saborNome:
+          type: string
+        quantidade:
+          type: integer
+        ultimaAtualizacao:
+          type: string
+          format: date-time
+
+    ProducaoRequest:
+      type: object
+      required:
+        - saborId
+        - quantidadeProduzida
+      properties:
+        saborId:
+          type: string
+          format: uuid
+        quantidadeProduzida:
+          type: integer
+        deduzirEstoque:
+          type: boolean
+          default: true
+          description: Se true, deduz automaticamente matéria prima, embalagem e plásticos (FIFO)
+        dataProducao:
+          type: string
+          format: date-time
+        observacoes:
+          type: string
+
+    ProducaoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        saborId:
+          type: string
+          format: uuid
+        saborNome:
+          type: string
+        quantidadeProduzida:
+          type: integer
+        deduzirEstoque:
+          type: boolean
+        dataProducao:
+          type: string
+          format: date-time
+        observacoes:
+          type: string
+
+    DespesaRequest:
+      type: object
+      required:
+        - descricao
+        - valor
+      properties:
+        descricao:
+          type: string
+        valor:
+          type: number
+          format: decimal
+        dataVencimento:
+          type: string
+          format: date
+        dataPagamento:
+          type: string
+          format: date
+        observacao:
+          type: string
+          description: Observações sobre a despesa (texto longo)
+
+    DespesaResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        descricao:
+          type: string
+        valor:
+          type: number
+          format: decimal
+        dataVencimento:
+          type: string
+        dataPagamento:
+          type: string
+        anexoUrl:
+          type: string
+          format: uri
+        observacao:
+          type: string
+          description: Observações sobre a despesa
+        dataCriacao:
+          type: string
+          format: date-time
+
+    PinguimVendaRequest:
+      type: object
+      required:
+        - itens
+        - total
+        - totalPago
+      properties:
+        clienteId:
+          type: string
+          format: uuid
+          description: ID do cliente cadastrado (opcional). A região será derivada de cliente.regiao quando existir.
+        itens:
+          type: array
+          items:
+            $ref: '#/components/schemas/PinguimVendaItemRequest'
+        total:
+          type: number
+          format: decimal
+        totalPago:
+          type: number
+          format: decimal
+        abaterEstoque:
+          type: boolean
+          default: true
+          description: Se true, deduz do estoque de gelinhos ao registrar/editar a venda
+
+    PinguimVendaItemRequest:
+      type: object
+      required:
+        - saborId
+        - quantidade
+      properties:
+        saborId:
+          type: string
+          format: uuid
+        quantidade:
+          type: integer
+
+    PinguimVendaResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        total:
+          type: number
+          format: decimal
+        totalPago:
+          type: number
+          format: decimal
+        dataVenda:
+          type: string
+          format: date-time
+        clienteId:
+          type: string
+          format: uuid
+          description: ID do cliente cadastrado
+        clienteNome:
+          type: string
+          description: Nome do cliente cadastrado
+        regiaoId:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID da região (derivada do cliente quando existir)
+        regiaoNome:
+          type: string
+          nullable: true
+          description: Nome da região (derivada do cliente quando existir)
+        vendedor:
+          type: string
+        abaterEstoque:
+          type: boolean
+          description: Indica se a venda abateu do estoque
+        itens:
+          type: array
+          items:
+            $ref: '#/components/schemas/PinguimVendaItemResponse'
+
+    PinguimVendaItemResponse:
+      type: object
+      properties:
+        sabor:
+          type: string
+        quantidade:
+          type: integer
+
+    # ==================== Schemas de Relatórios ====================
+
+    PeriodoRelatorio:
+      type: object
+      properties:
+        inicio:
+          type: string
+          format: date
+          example: '2024-11-20'
+        fim:
+          type: string
+          format: date
+          example: '2024-12-20'
+
+    # Relatório de Despesas
+    RelatorioDespesasResponse:
+      type: object
+      properties:
+        periodo:
+          $ref: '#/components/schemas/PeriodoRelatorio'
+        totalDespesas:
+          type: number
+          format: decimal
+          example: 50000.00
+        totalPago:
+          type: number
+          format: decimal
+          example: 45000.00
+        totalPendente:
+          type: number
+          format: decimal
+          example: 5000.00
+        despesasPorCategoria:
+          type: array
+          items:
+            $ref: '#/components/schemas/DespesaPorCategoriaItem'
+        despesasPorSemana:
+          type: array
+          items:
+            $ref: '#/components/schemas/DespesaPorPeriodoItem'
+          description: Agregação semanal (formato YYYY-Wnn)
+        despesasPorMes:
+          type: array
+          items:
+            $ref: '#/components/schemas/DespesaPorPeriodoItem'
+        despesasDetalhadas:
+          type: array
+          items:
+            $ref: '#/components/schemas/DespesaDetalhadaItem'
+          description: Últimas 50 despesas detalhadas
+
+    DespesaPorCategoriaItem:
+      type: object
+      properties:
+        categoria:
+          type: string
+          example: 'FORNECEDOR'
+        valor:
+          type: number
+          format: decimal
+        percentual:
+          type: number
+          format: double
+          description: Percentual do total (0-100)
+        quantidade:
+          type: integer
+
+    DespesaPorPeriodoItem:
+      type: object
+      properties:
+        periodo:
+          type: string
+          description: 'YYYY-MM para mês ou YYYY-Wnn para semana ou YYYY-MM-DD para dia'
+          example: '2024-W52'
+        valor:
+          type: number
+          format: decimal
+        quantidade:
+          type: integer
+
+    DespesaDetalhadaItem:
+      type: object
+      properties:
+        descricao:
+          type: string
+        valor:
+          type: number
+          format: decimal
+        dataPagamento:
+          type: string
+          format: date
+          nullable: true
+        dataVencimento:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          enum: [PAGO, PENDENTE, VENCIDO]
+
+    # Relatório de Vendas
+    RelatorioVendasResponse:
+      type: object
+      properties:
+        periodo:
+          $ref: '#/components/schemas/PeriodoRelatorio'
+        totalVendas:
+          type: number
+          format: decimal
+          example: 80000.00
+        totalRecebido:
+          type: number
+          format: decimal
+          example: 75000.00
+        totalPendente:
+          type: number
+          format: decimal
+          example: 5000.00
+        quantidadeVendas:
+          type: integer
+          example: 320
+        ticketMedio:
+          type: number
+          format: decimal
+          example: 250.00
+        vendasPorSabor:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendaPorSaborItem'
+        vendasPorRegiao:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendaPorRegiaoItem'
+        vendasPorSemana:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendaPorPeriodoItem'
+          description: Agregação semanal (formato YYYY-Wnn) - RECOMENDADO para 30 dias
+        vendasPorDia:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendaPorPeriodoItem'
+        topClientes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClienteItem'
+          description: Top 10 clientes
+
+    VendaPorSaborItem:
+      type: object
+      properties:
+        sabor:
+          type: string
+        quantidade:
+          type: integer
+        valorTotal:
+          type: number
+          format: decimal
+        percentualQuantidade:
+          type: number
+          format: double
+          description: Percentual em quantidade (0-100)
+        percentualValor:
+          type: number
+          format: double
+          description: Percentual em valor (0-100)
+
+    VendaPorRegiaoItem:
+      type: object
+      properties:
+        regiao:
+          type: string
+        quantidade:
+          type: integer
+        valorTotal:
+          type: number
+          format: decimal
+        percentual:
+          type: number
+          format: double
+          description: Percentual do total (0-100)
+
+    VendaPorPeriodoItem:
+      type: object
+      properties:
+        periodo:
+          type: string
+          description: 'YYYY-MM-DD para dia ou YYYY-Wnn para semana'
+          example: '2024-W52'
+        valorTotal:
+          type: number
+          format: decimal
+        quantidadeVendas:
+          type: integer
+
+    ClienteItem:
+      type: object
+      properties:
+        cliente:
+          type: string
+        totalCompras:
+          type: number
+          format: decimal
+        quantidadeCompras:
+          type: integer
+
+    # Relatório de Estoque
+    RelatorioEstoqueResponse:
+      type: object
+      properties:
+        dataGeracao:
+          type: string
+          format: date-time
+          example: '2024-12-20 16:30:00'
+        estoqueMateriaPrima:
+          type: array
+          items:
+            $ref: '#/components/schemas/EstoqueMateriaPrimaItem'
+        estoqueEmbalagem:
+          type: array
+          items:
+            $ref: '#/components/schemas/EstoqueEmbalagemItem'
+        estoqueGelinho:
+          type: array
+          items:
+            $ref: '#/components/schemas/EstoqueGelinhoItem'
+        valorTotalEstoque:
+          type: number
+          format: decimal
+          description: Valor total de matéria-prima e embalagens em estoque
+        alertasEstoqueBaixo:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertaEstoqueItem'
+          description: Alertas de itens com estoque abaixo de 20%
+
+    EstoqueMateriaPrimaItem:
+      type: object
+      properties:
+        nome:
+          type: string
+        sabor:
+          type: string
+          nullable: true
+        estoqueUnidades:
+          type: integer
+        totalUnidades:
+          type: integer
+        percentualDisponivel:
+          type: number
+          format: double
+          description: Percentual disponível (0-100)
+        precoPorUnidade:
+          type: number
+          format: decimal
+        valorTotal:
+          type: number
+          format: decimal
+          description: Valor do estoque atual (estoqueUnidades * precoPorUnidade)
+
+    EstoqueEmbalagemItem:
+      type: object
+      properties:
+        nome:
+          type: string
+        sabor:
+          type: string
+          nullable: true
+        estoqueUnidades:
+          type: integer
+        totalUnidades:
+          type: integer
+        percentualDisponivel:
+          type: number
+          format: double
+          description: Percentual disponível (0-100)
+        precoPorUnidade:
+          type: number
+          format: decimal
+        valorTotal:
+          type: number
+          format: decimal
+
+    EstoqueGelinhoItem:
+      type: object
+      properties:
+        sabor:
+          type: string
+        quantidade:
+          type: integer
+
+    AlertaEstoqueItem:
+      type: object
+      properties:
+        tipo:
+          type: string
+          enum: [MATERIA_PRIMA, EMBALAGEM]
+        nome:
+          type: string
+        sabor:
+          type: string
+          nullable: true
+        estoqueAtual:
+          type: integer
+        nivelCritico:
+          type: string
+          enum: [CRITICO, BAIXO]
+          description: CRITICO < 10%, BAIXO < 20%
+
+    # Relatório de Produção
+    RelatorioProducaoResponse:
+      type: object
+      properties:
+        periodo:
+          $ref: '#/components/schemas/PeriodoRelatorio'
+        totalProducao:
+          type: integer
+          description: Total de unidades produzidas
+        producaoPorSabor:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProducaoPorSaborItem'
+        producaoPorDia:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProducaoPorPeriodoItem'
+        mediaProducaoDiaria:
+          type: number
+          format: double
+        diasComProducao:
+          type: integer
+
+    ProducaoPorSaborItem:
+      type: object
+      properties:
+        sabor:
+          type: string
+        quantidade:
+          type: integer
+        percentual:
+          type: number
+          format: double
+          description: Percentual do total (0-100)
+        vezes:
+          type: integer
+          description: Número de registros de produção
+
+    ProducaoPorPeriodoItem:
+      type: object
+      properties:
+        periodo:
+          type: string
+          format: date
+          example: '2024-12-20'
+        quantidade:
+          type: integer
+        quantidadeProducoes:
+          type: integer
+          description: Número de produções nesse dia
+
+    # Relatório de Lucro
+    RelatorioLucroResponse:
+      type: object
+      properties:
+        periodo:
+          $ref: '#/components/schemas/PeriodoRelatorio'
+        totalVendas:
+          type: number
+          format: decimal
+          description: Total de vendas pagas
+        totalDespesas:
+          type: number
+          format: decimal
+          description: Total de despesas pagas
+        lucroLiquido:
+          type: number
+          format: decimal
+        margemLucro:
+          type: number
+          format: double
+          description: Margem de lucro em percentual (0-100)
+        lucroPorMes:
+          type: array
+          items:
+            $ref: '#/components/schemas/LucroPorPeriodoItem'
+        resumoFinanceiro:
+          $ref: '#/components/schemas/ResumoFinanceiro'
+
+    LucroPorPeriodoItem:
+      type: object
+      properties:
+        periodo:
+          type: string
+          description: Ano-Mês (YYYY-MM)
+          example: '2024-12'
+        vendas:
+          type: number
+          format: decimal
+        despesas:
+          type: number
+          format: decimal
+        lucro:
+          type: number
+          format: decimal
+        margemLucro:
+          type: number
+          format: double
+          description: Margem de lucro em percentual (0-100)
+
+    ResumoFinanceiro:
+      type: object
+      properties:
+        receitaMedia:
+          type: number
+          format: decimal
+        despesaMedia:
+          type: number
+          format: decimal
+        lucroMedio:
+          type: number
+          format: decimal
+        melhorMes:
+          $ref: '#/components/schemas/MelhorPiorMesItem'
+        piorMes:
+          $ref: '#/components/schemas/MelhorPiorMesItem'
+
+    MelhorPiorMesItem:
+      type: object
+      properties:
+        mes:
+          type: string
+          example: '2024-12'
+        valor:
+          type: number
+          format: decimal
+
+    # Parâmetros de Cálculo
+    ParametroCalculoRequest:
+      type: object
+      required:
+        - chave
+        - valor
+      properties:
+        chave:
+          type: string
+          example: 'UNIDADES_POR_PACOTE'
+          description: Chave única do parâmetro
+        valor:
+          type: number
+          format: double
+          example: 4.4
+          description: Valor numérico do parâmetro (aceita decimais)
+        descricao:
+          type: string
+          example: 'Quantidade de unidades por pacote'
+          description: Descrição do parâmetro
+
+    ParametroCalculoResponse:
+      type: object
+      properties:
+        chave:
+          type: string
+          example: 'UNIDADES_POR_PACOTE'
+        valor:
+          type: number
+          format: double
+          example: 4.4
+          description: Valor numérico (pode ser decimal como 4.4 ou inteiro como 266)
+        descricao:
+          type: string
+          example: 'Quantidade de unidades por pacote'
+        dataAtualizacao:
+          type: string
+          format: date-time
+          example: '2024-12-20T15:30:00'
+
+    # Clientes
+    ClienteRequest:
+      type: object
+      required:
+        - nome
+      properties:
+        nome:
+          type: string
+          example: 'João da Silva'
+        endereco:
+          type: string
+          example: 'Rua das Flores, 123'
+        telefone:
+          type: string
+          example: '11987654321'
+        cnpj:
+          type: string
+          example: '12.345.678/0001-90'
+        regiaoId:
+          type: string
+          format: uuid
+          description: ID da região (opcional)
+        bloqueado:
+          type: boolean
+          default: false
+        motivoBloqueio:
+          type: string
+          description: Motivo do bloqueio (se aplicável)
+
+    ClienteResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        endereco:
+          type: string
+        telefone:
+          type: string
+        cnpj:
+          type: string
+        regiao:
+          $ref: '#/components/schemas/ClienteRegiaoInfo'
+        bloqueado:
+          type: boolean
+        motivoBloqueio:
+          type: string
+        dataCriacao:
+          type: string
+          format: date-time
+
+    ClienteRegiaoInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+

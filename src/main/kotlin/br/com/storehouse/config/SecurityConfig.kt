@@ -6,6 +6,7 @@ import br.com.storehouse.api.security.filters.JwtAuthenticationFilter
 import br.com.storehouse.service.UsuarioService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.security.authentication.AuthenticationProvider
@@ -24,6 +25,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 @EnableMethodSecurity
+@Profile("!test")
 class SecurityConfig(
     private val jwtUtils: JwtUtils,
     private val usuarioService: UsuarioService,
@@ -40,6 +42,7 @@ class SecurityConfig(
                 auth
                     .requestMatchers("/api/oauth2/**").permitAll()
                     .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/api/pinguim-admin/auth/**").permitAll()
                     .requestMatchers("/favicon.ico").permitAll()
                     .requestMatchers("/login/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/produtos/tipos").permitAll()
@@ -79,7 +82,8 @@ class SecurityConfig(
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
-            addAllowedOrigin("http://localhost:8080")
+            addAllowedOrigin("http://localhost:*")
+            addAllowedOrigin("http://127.0.0.1:*")
             addAllowedOrigin("https://primeira.app.br")
             addAllowedOriginPattern("https://*.ngrok-free.app")  // usa pattern no lugar
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")

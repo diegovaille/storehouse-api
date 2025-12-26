@@ -18,4 +18,13 @@
     <include file="db/changelog/db.changelog-2.0-insight-vendas.xml"/>
     <include file="db/changelog/db.changelog-2.1-novos-usuarios.xml"/>
     <include file="db/changelog/db.changelog-2.2-atualizar-horarios.xml"/>
+    <include file="db/changelog/db.changelog-3.0-pinguimice-admin.xml"/>
+    <include file="db/changelog/db.changelog-3.1-pinguimice-organizacao.xml"/>
+    <include file="db/changelog/db.changelog-3.2-vendas-pinguimice.xml"/>
+    <include file="db/changelog/db.changelog-3.3-indices-relatorios.xml"/>
+    <include file="db/changelog/db.changelog-3.4-despesa-observacao.xml"/>
+    <include file="db/changelog/db.changelog-3.5-venda-abater-estoque.xml"/>
+    <include file="db/changelog/db.changelog-3.6-parametros-calculo.xml"/>
+    <include file="db/changelog/db.changelog-4.0-multi-empresa.xml"/>
+    <include file="db/changelog/db.changelog-4.1-clientes.xml"/>
 </databaseChangeLog>

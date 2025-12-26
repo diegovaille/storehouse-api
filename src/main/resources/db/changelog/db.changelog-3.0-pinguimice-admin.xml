@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- Pinguimice Admin Module - Input-Time Calculations -->
+    <changeSet id="pinguimice-create-schema" author="dev">
+        <sql>CREATE SCHEMA IF NOT EXISTS pinguim</sql>
+    </changeSet>
+
+    <changeSet id="pinguimice-admin-tables-v2" author="dev">
+        
+        <!-- Sabor (Flavors) -->
+        <createTable tableName="sabor" schemaName="pinguim">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nome" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cor_hex" type="VARCHAR(7)"/>
+            <column name="ativo" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_criacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Matéria Prima (Insumos) - with input-time calculations -->
+        <createTable tableName="materia_prima" schemaName="pinguim">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nome" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sabor_id" type="UUID"/>
+            <column name="tipo_entrada" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantidade_entrada" type="DECIMAL(10,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preco_entrada" type="DECIMAL(10,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_unidades" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preco_por_unidade" type="DECIMAL(10,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="estoque_unidades" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_criacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Embalagem (Packaging) - with input-time calculations -->
+        <createTable tableName="embalagem" schemaName="pinguim">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nome" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sabor_id" type="UUID"/>
+            <column name="quantidade_kg" type="DECIMAL(10,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preco_kg" type="DECIMAL(10,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_unidades" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preco_por_unidade" type="DECIMAL(10,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="estoque_unidades" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_criacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Outros (Others - Plastics, etc.) -->
+        <createTable tableName="outros" schemaName="pinguim">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nome" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantidade_entrada" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preco_entrada" type="DECIMAL(10,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="unidades_por_item" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_unidades" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preco_por_unidade" type="DECIMAL(10,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="estoque_unidades" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_criacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Produção (Production) - Simplified -->
+        <createTable tableName="producao" schemaName="pinguim">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="sabor_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantidade_produzida" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deduzir_estoque" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_producao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="observacoes" type="TEXT"/>
+        </createTable>
+
+        <!-- Estoque Gelinho (Flavored Ice Stock) -->
+        <createTable tableName="estoque_gelinho" schemaName="pinguim">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="sabor_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantidade" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ultima_atualizacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Região de Venda (Sales Regions) -->
+        <createTable tableName="regiao_venda" schemaName="pinguim">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nome" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="descricao" type="TEXT"/>
+            <column name="ativo" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_criacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Despesa (Expenses) - Simplified -->
+        <createTable tableName="despesa" schemaName="pinguim">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="descricao" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valor" type="DECIMAL(10,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_vencimento" type="DATE"/>
+            <column name="data_pagamento" type="DATE"/>
+            <column name="anexo_url" type="VARCHAR(255)"/>
+            <column name="data_criacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Foreign Keys -->
+        <addForeignKeyConstraint
+                baseTableSchemaName="pinguim"
+                baseTableName="materia_prima"
+                baseColumnNames="sabor_id"
+                constraintName="fk_materiaprima_sabor"
+                referencedTableSchemaName="pinguim"
+                referencedTableName="sabor"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                baseTableSchemaName="pinguim"
+                baseTableName="embalagem"
+                baseColumnNames="sabor_id"
+                constraintName="fk_embalagem_sabor"
+                referencedTableSchemaName="pinguim"
+                referencedTableName="sabor"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                baseTableSchemaName="pinguim"
+                baseTableName="producao"
+                baseColumnNames="sabor_id"
+                constraintName="fk_producao_sabor"
+                referencedTableSchemaName="pinguim"
+                referencedTableName="sabor"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                baseTableSchemaName="pinguim"
+                baseTableName="estoque_gelinho"
+                baseColumnNames="sabor_id"
+                constraintName="fk_estoquegelinho_sabor"
+                referencedTableSchemaName="pinguim"
+                referencedTableName="sabor"
+                referencedColumnNames="id"/>
+
+        <!-- Unique Constraints -->
+        <addUniqueConstraint
+                schemaName="pinguim"
+                tableName="estoque_gelinho"
+                columnNames="sabor_id"
+                constraintName="uk_estoque_gelinho_sabor"/>
+
+    </changeSet>
+
+</databaseChangeLog>
