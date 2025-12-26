@@ -66,6 +66,19 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SaborRequest'
+            examples:
+              saborSemAcucar:
+                summary: Sabor sem açúcar
+                value:
+                  nome: 'Morango'
+                  corHex: '#FF3366'
+                  usaAcucar: false
+              saborComAcucar:
+                summary: Sabor que usa açúcar
+                value:
+                  nome: 'Coco'
+                  corHex: '#FFFFFF'
+                  usaAcucar: true
       responses:
         '201':
           description: Sabor criado com sucesso
@@ -93,6 +106,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SaborRequest'
+            examples:
+              atualizarUsaAcucar:
+                summary: Atualizar flag usaAcucar
+                value:
+                  nome: 'Maçã Verde'
+                  corHex: '#00CC66'
+                  usaAcucar: true
       responses:
         '200':
           description: Sabor atualizado com sucesso
@@ -440,9 +460,16 @@ paths:
         - Despesas
       summary: Criar despesa
       operationId: criarDespesa
+      description: |
+        Suporta dois formatos:
+        - application/json (sem upload)
+        - multipart/form-data (com upload opcional)
       requestBody:
         required: true
         content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DespesaRequest'
           multipart/form-data:
             schema:
               type: object
@@ -478,6 +505,9 @@ paths:
       requestBody:
         required: true
         content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DespesaRequest'
           multipart/form-data:
             schema:
               type: object
@@ -588,6 +618,22 @@ paths:
                 $ref: '#/components/schemas/PinguimVendaResponse'
         '404':
           description: Venda não encontrada
+    delete:
+      tags:
+        - Vendas
+      summary: Cancelar venda
+      operationId: cancelarVenda
+      description: Cancela uma venda e restaura o estoque se necessário
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Venda cancelada com sucesso
 
   /api/pinguim-admin/vendas/{id}/pagar:
     patch:
@@ -612,24 +658,6 @@ paths:
                 $ref: '#/components/schemas/PinguimVendaResponse'
         '404':
           description: Venda não encontrada
-
-  /api/pinguim-admin/vendas/{id}:
-    delete:
-      tags:
-        - Vendas
-      summary: Cancelar venda
-      operationId: cancelarVenda
-      description: Cancela uma venda e restaura o estoque se necessário
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '204':
-          description: Venda cancelada com sucesso
 
   /api/pinguim-admin/clientes:
     get:
@@ -1051,10 +1079,17 @@ components:
       properties:
         nome:
           type: string
+          example: 'Coco'
         corHex:
           type: string
           pattern: '^#[0-9A-Fa-f]{6}$'
-          example: '#FF5733'
+          example: '#FFFFFF'
+        usaAcucar:
+          type: boolean
+          nullable: true
+          default: false
+          example: true
+          description: Indica se o sabor utiliza açúcar como base na produção (pode ser omitido; padrão false)
 
     SaborResponse:
       type: object
@@ -1062,15 +1097,24 @@ components:
         id:
           type: string
           format: uuid
+          example: 'b9e6a706-ce3a-4d0e-ab90-93a308a137aa'
         nome:
           type: string
+          example: 'Coco'
         corHex:
           type: string
+          example: '#FFFFFF'
         ativo:
           type: boolean
+          example: true
+        usaAcucar:
+          type: boolean
+          example: true
+          description: Indica se o sabor utiliza açúcar como base na produção
         dataCriacao:
           type: string
           format: date-time
+          example: '2025-12-26T10:00:00-03:00'
 
     RegiaoVendaRequest:
       type: object
