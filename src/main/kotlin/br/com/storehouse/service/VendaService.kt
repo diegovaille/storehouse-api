@@ -83,12 +83,14 @@ class VendaService(
             )
         }
 
-        var total = calcularTotal(vendaItens)
+        val total = calcularTotal(vendaItens)
 
         // aplica desconto se for voucher
-        if (request.voucher) {
-            total = total.divide(BigDecimal(2))
-        }
+        // OBS: o desconto já foi aplicado no precoUnitario dos itens acima,
+        // então NÃO devemos dividir o total novamente (evita metade da metade).
+        // if (request.voucher) {
+        //     total = total.divide(BigDecimal(2))
+        // }
 
         venda.valorTotal = total
         venda.itens = vendaItens
@@ -128,7 +130,6 @@ class VendaService(
             ?: LocalDateTime.now().withHour(23).withMinute(59).withSecond(59)
 
 
-        val listaVendas = vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, dataInicio, dataFim)
         return vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, dataInicio, dataFim)
             .filter { venda -> !apenasAtiva || !venda.cancelada }
             .map { it.toResponse(relatorio) }
@@ -168,7 +169,7 @@ class VendaService(
 
 fun Venda.toResponse(relatorio: Boolean): VendaResponse = VendaResponse(
     id = this.id,
-    valorTotal = this.valorTotal ?: BigDecimal.ZERO,
+    valorTotal = this.valorTotal,
     data = this.data.toString(),
     vendedorNome = this.vendedor.username ?: "Desconhecido",
     vendedorEmail = this.vendedor.email,
