@@ -20,6 +20,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDateTime
 import java.util.*
 
@@ -79,18 +80,17 @@ class VendaService(
                 venda = venda,
                 produto = produto,
                 quantidade = item.quantidade,
-                precoUnitario = if (venda.voucher) estadoAtual.preco.divide(BigDecimal(2)) else estadoAtual.preco
+                // Voucher será aplicado no TOTAL final, não no preço unitário.
+                precoUnitario = estadoAtual.preco
             )
         }
 
-        val total = calcularTotal(vendaItens)
+        var total = calcularTotal(vendaItens)
 
-        // aplica desconto se for voucher
-        // OBS: o desconto já foi aplicado no precoUnitario dos itens acima,
-        // então NÃO devemos dividir o total novamente (evita metade da metade).
-        // if (request.voucher) {
-        //     total = total.divide(BigDecimal(2))
-        // }
+        // aplica desconto se for voucher (50%)
+        if (request.voucher) {
+            total = total.divide(BigDecimal(2), 2, RoundingMode.HALF_UP)
+        }
 
         venda.valorTotal = total
         venda.itens = vendaItens
