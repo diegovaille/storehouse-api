@@ -85,6 +85,7 @@ class SecurityConfig(
             addAllowedOrigin("http://localhost:*")
             addAllowedOrigin("http://127.0.0.1:*")
             addAllowedOrigin("https://primeira.app.br")
+            addAllowedOrigin("https://preview.primeira.app.br")
             addAllowedOrigin("https://admin.pinguimice.com.br")
             addAllowedOriginPattern("https://*.pinguimice.com.br")
             addAllowedOriginPattern("https://*.ngrok-free.app")  // usa pattern no lugar
