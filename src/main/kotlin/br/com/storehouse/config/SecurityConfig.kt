@@ -4,6 +4,7 @@ import br.com.storehouse.api.handler.OAuth2SuccessHandler
 import br.com.storehouse.api.security.JwtUtils
 import br.com.storehouse.api.security.filters.JwtAuthenticationFilter
 import br.com.storehouse.service.UsuarioService
+import org.springframework.core.env.Environment
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
@@ -29,7 +30,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 class SecurityConfig(
     private val jwtUtils: JwtUtils,
     private val usuarioService: UsuarioService,
-    private val oauth2SuccessHandler: OAuth2SuccessHandler
+    private val oauth2SuccessHandler: OAuth2SuccessHandler,
+    private val env: Environment
 ) {
 
     @Bean
@@ -82,13 +84,19 @@ class SecurityConfig(
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
-            addAllowedOrigin("http://localhost:*")
-            addAllowedOrigin("http://127.0.0.1:*")
+            // Produção (sempre permitidos)
             addAllowedOrigin("https://primeira.app.br")
-            addAllowedOrigin("https://preview.primeira.app.br")
+            addAllowedOriginPattern("https://*.primeira.app.br")
             addAllowedOrigin("https://admin.pinguimice.com.br")
             addAllowedOriginPattern("https://*.pinguimice.com.br")
-            addAllowedOriginPattern("https://*.ngrok-free.app")  // usa pattern no lugar
+            
+            // Dev apenas
+            if (env.activeProfiles.contains("dev")) {
+                addAllowedOrigin("http://localhost:*")
+                addAllowedOrigin("http://127.0.0.1:*")
+                addAllowedOriginPattern("https://*.ngrok-free.app")
+            }
+            
             allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             allowedHeaders = listOf("*")
             allowCredentials = true
