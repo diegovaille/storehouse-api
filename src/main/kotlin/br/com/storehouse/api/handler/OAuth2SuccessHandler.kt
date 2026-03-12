@@ -12,6 +12,21 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component
 import java.net.URLEncoder
 
+/**
+ * Handles successful Google OAuth2 authentication.
+ *
+ * After authentication, the user is redirected to the correct frontend (production or preview).
+ *
+ * HOW IT WORKS:
+ * - Before initiating the Google login, the frontend sets a short-lived cookie `oauth_origin`
+ *   with its own `window.location.origin` (e.g. https://preview.primeira.app.br).
+ * - Spring Security manages the `state` param internally for CSRF — we do NOT touch it.
+ * - After authentication, this handler reads the `oauth_origin` cookie and validates it
+ *   against [ALLOWED_ORIGINS] before redirecting.
+ * - If the cookie is absent or invalid, the fallback [frontendBaseUrl] is used (production).
+ *
+ * SECURITY: Only origins in [ALLOWED_ORIGINS] are accepted — prevents open-redirect attacks.
+ */
 @Component
 class OAuth2SuccessHandler(
     private val jwtUtils: JwtUtils,
@@ -23,13 +38,20 @@ class OAuth2SuccessHandler(
 
     private val logger = LoggerFactory.getLogger(OAuth2SuccessHandler::class.java)
 
+    /**
+     * Whitelist of origins allowed to receive the OAuth redirect.
+     * Add new environments here (e.g. staging) as needed.
+     */
+    private val ALLOWED_ORIGINS = setOf(
+        "https://primeira.app.br",
+        "https://preview.primeira.app.br"
+    )
+
     override fun onAuthenticationSuccess(
         request: HttpServletRequest,
         response: HttpServletResponse,
         authentication: Authentication
     ) {
-        val headers = request.headerNames.toList().associateWith { request.getHeader(it) }
-        logger.info("Request headers: $headers")
         val oauthToken = authentication as OAuth2AuthenticationToken
         val attributes = oauthToken.principal.attributes
 
@@ -39,14 +61,25 @@ class OAuth2SuccessHandler(
         val name = attributes["name"] as? String
         val picture = attributes["picture"] as? String
 
-        val usuario = usuarioService.buscarPorEmail(email)
+        usuarioService.buscarPorEmail(email)
             ?: throw RuntimeException("Usuário não autorizado: $email")
 
         val tokenTemporario = jwtUtils.generateTempToken(email)
-        val redirectBase = if (frontendBaseUrl.isNotBlank()) {
-            frontendBaseUrl
-        } else {
-            getBaseUrl(request)
+
+        // 1. Read the `oauth_origin` cookie set by the frontend before the OAuth redirect.
+        val cookieOrigin = request.cookies
+            ?.firstOrNull { it.name == "oauth_origin" }
+            ?.value
+            ?.takeIf { it in ALLOWED_ORIGINS }
+
+        // 2. Determine target frontend base URL.
+        val redirectBase = when {
+            cookieOrigin != null -> {
+                logger.info("Usando oauth_origin cookie: $cookieOrigin")
+                cookieOrigin
+            }
+            frontendBaseUrl.isNotBlank() -> frontendBaseUrl
+            else -> getBaseUrl(request)
         }
 
         val redirectUrl = buildString {
@@ -56,8 +89,7 @@ class OAuth2SuccessHandler(
             if (picture != null) append("&picture=${URLEncoder.encode(picture, "UTF-8")}")
         }
 
-        logger.info("Usuário autenticado: $email, redirecionando para: $redirectUrl")
-
+        logger.info("Usuário autenticado: $email → redirecionando para: $redirectUrl")
         response.sendRedirect(redirectUrl)
     }
 
