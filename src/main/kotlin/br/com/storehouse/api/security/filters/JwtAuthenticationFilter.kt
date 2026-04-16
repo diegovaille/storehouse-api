@@ -30,7 +30,22 @@ class JwtAuthenticationFilter(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        logger.info("Validando JWT na requisição: ${request.requestURI}")
+        val path = request.requestURI
+
+        // Fast-fail para scanners de vulnerabilidades (ex: bots procurando por PHP)
+        val lowerPath = path.lowercase()
+        if (lowerPath.contains("/vendor/") || 
+            lowerPath.contains(".php") || 
+            lowerPath.contains(".env") || 
+            lowerPath.contains("/phpunit/") ||
+            lowerPath.contains(".git")) {
+            
+            logger.warn("Bloqueando probe malicioso: $path")
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
+        }
+
+        logger.debug("Validando JWT na requisição: $path")
 
         val token = getTokenFromRequest(request)
 
