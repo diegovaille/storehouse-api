@@ -91,6 +91,7 @@ jobs:
             gunzip -c storehouse-api.tar.gz | docker load
             
             docker run -d --name storehouse-api \
+            --restart unless-stopped \
             -e SPRING_PROFILES_ACTIVE=prod \
             -e GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
             -e GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
