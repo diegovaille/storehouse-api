@@ -53,12 +53,34 @@ jobs:
             sudo apt update
             sudo apt install -y nginx certbot python3-certbot-nginx
 
+            echo "Aplicando hardening do nginx (rate limit + bloqueio de probes)..."
+            sudo tee /etc/nginx/conf.d/hardening.conf > /dev/null <<'HARDENING_EOF'
+            limit_req_zone $binary_remote_addr zone=api_limit:10m rate=20r/s;
+            limit_req_status 429;
+            map $request_uri $bad_request_uri {
+                default 0;
+                ~*(?:\.env|\.git|\.svn|\.hg|/\.aws|/\.ssh|/\.vscode|/\.idea)   1;
+                ~*(?:wp-admin|wp-login|wp-includes|wp-content|xmlrpc\.php)     1;
+                ~*(?:phpunit|eval-stdin|allow_url_include|auto_prepend_file)   1;
+                ~*(?:/vendor/|/cgi-bin/|luci|/SDK/webLanguage|adminer)         1;
+                ~*\.(?:php|asp|aspx|jsp|cgi|env)(?:$|[?/])                     1;
+            }
+            HARDENING_EOF
+            sudo mkdir -p /etc/nginx/snippets
+            sudo tee /etc/nginx/snippets/hardening.conf > /dev/null <<'SNIPPET_EOF'
+            if ($request_method !~ ^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)$) { return 444; }
+            if ($bad_request_uri) { return 444; }
+            limit_req zone=api_limit burst=40 nodelay;
+            SNIPPET_EOF
+
             echo "Configuring Nginx reverse proxy..."
             sudo tee /etc/nginx/sites-available/backend <<'EOF'
             server {
                 listen 80;
                 server_name api.primeira.app.br;
-            
+
+                include snippets/hardening.conf;
+
                 location / {
                     proxy_pass http://localhost:8080;
                     proxy_set_header Host $host;
