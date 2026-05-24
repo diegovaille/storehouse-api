@@ -3,117 +3,23 @@ name: Deploy Backend to Oracle VM
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # Para permitir execução manual
+  workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx (multi-platform builder)
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image (x86_64)
-        run: |
-          docker buildx build --platform linux/amd64 -t storehouse-api:latest --load .
-
-      - name: Save Docker image
-        run: |
-          docker save storehouse-api:latest | gzip > storehouse-api.tar.gz
-          echo "Docker image saved as storehouse-api.tar.gz"
-
-      - name: Save Key to Workspace
-        run: |
-          echo "${{ secrets.OCI_VM_SSH_KEY }}" | base64 -d > ${{ github.workspace }}/key.pem
-          chmod 600 ${{ github.workspace }}/key.pem
-
-      - name: Upload image to VM
-        uses: appleboy/scp-action@v0.1.3
-        with:
-          host: ${{ vars.OCI_VM_HOST }}
-          username: ${{ vars.OCI_VM_SSH_USER }}
-          key_path: ${{ github.workspace }}/key.pem
-          source: storehouse-api.tar.gz
-          target: /home/${{ vars.OCI_VM_SSH_USER }}
-
-      - name: Deploy and setup via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ vars.OCI_VM_HOST }}
-          username: ${{ vars.OCI_VM_SSH_USER }}
-          key_path: ${{ github.workspace }}/key.pem
-          script: |
-            set -e
-            cd /home/${{ vars.OCI_VM_SSH_USER }}
-
-            echo "Installing Nginx and Certbot..."
-            sudo apt update
-            sudo apt install -y nginx certbot python3-certbot-nginx
-
-            echo "Configuring Nginx reverse proxy..."
-            sudo tee /etc/nginx/sites-available/backend <<'EOF'
-            server {
-                listen 80;
-                server_name api.primeira.app.br;
-            
-                location / {
-                    proxy_pass http://localhost:8080;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                    proxy_set_header X-Forwarded-Host $host;
-                }
-            }
-            EOF
-          
-            sudo ln -sf /etc/nginx/sites-available/backend /etc/nginx/sites-enabled/backend
-            sudo nginx -t
-            sudo systemctl reload nginx
-            
-            echo "Attempting to issue SSL certificate (if DNS resolved)..."
-            if ping -c 1 api.primeira.app.br >/dev/null 2>&1; then
-            sudo certbot --nginx -n --agree-tos --redirect --email diegovaille@gmail.com -d api.primeira.app.br
-            else
-            echo "Skipping certbot: DNS not resolved yet."
-            fi
-            
-            echo "Salvando chave privada OCI..."
-            mkdir -p /home/${{ vars.OCI_VM_SSH_USER }}/.oci
-            echo "${{ secrets.OCI_PRIVATE_KEY_PEM_B64 }}" | base64 -d > /home/${{ vars.OCI_VM_SSH_USER }}/.oci/oci_api_key.pem
-            chmod 600 /home/${{ vars.OCI_VM_SSH_USER }}/.oci/oci_api_key.pem
-            
-            echo "Deploying backend container..."
-            docker rm -f storehouse-api || true
-            gunzip -c storehouse-api.tar.gz | docker load
-            
-            docker run -d --name storehouse-api \
-            --restart unless-stopped \
-            -e SPRING_PROFILES_ACTIVE=prod \
-            -e GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
-            -e GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
-            -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
-            -e ISBNDB_API_KEY='${{ secrets.ISBNDB_API_KEY }}' \
-            -e OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}' \
-            -e S3_ACCESS_KEY='${{ secrets.S3_ACCESS_KEY }}' \
-            -e S3_SECRET_KEY='${{ secrets.S3_SECRET_KEY }}' \
-            -e POSTGRES_USER='${{ vars.POSTGRES_USER }}' \
-            -e POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
-            -e POSTGRES_HOST='${{ vars.POSTGRES_HOST }}' \
-            -e OCI_USER_ID='${{ secrets.OCI_USER_ID }}' \
-            -e OCI_TENANCY_ID='${{ secrets.OCI_TENANCY_ID }}' \
-            -e OCI_FINGERPRINT='${{ secrets.OCI_FINGERPRINT }}' \
-            -e OCI_PRIVATE_KEY_PATH='/root/.oci/oci_api_key.pem' \
-            -v /home/${{ vars.OCI_VM_SSH_USER }}/.oci:/root/.oci \
-            -p 8080:8080 \
-            storehouse-api:latest
-            
-            rm -rf storehouse-api.tar.gz
-
-      - name: Remove Key from Workspace
-        run: |
-          rm -f ${{ github.workspace }}/key.pem
-          echo "SSH key removed from workspace"
+    uses: diegovaille/deploy-templates/.github/workflows/deploy-docker.yml@v1
+    with:
+      vm_host: ${{ vars.OCI_VM_HOST }}
+      ssh_user: ${{ vars.OCI_VM_SSH_USER }}
+      image_name: storehouse-api
+      domains: "api.primeira.app.br"
+      site_name: backend
+      nginx_config_path: deploy/nginx.conf
+      container_port: "8080"
+      extra_env: |
+        SPRING_PROFILES_ACTIVE=prod
+        OCI_PRIVATE_KEY_PATH=/root/.oci/oci_api_key.pem
+        POSTGRES_USER=${{ vars.POSTGRES_USER }}
+        POSTGRES_HOST=${{ vars.POSTGRES_HOST }}
+      volume_mounts: "-v /home/ubuntu/.oci:/root/.oci"
+    secrets: inherit
