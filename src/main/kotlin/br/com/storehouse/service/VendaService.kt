@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
 
@@ -197,6 +198,23 @@ class VendaService(
         }
         return acc.values.sortedByDescending { it.qtd }.take(limite)
             .map { ProdutoMaisVendidoResponse(it.nome, it.categoria, it.qtd, it.total) }
+    }
+
+    @LogCall
+    fun serieVendas(filialId: UUID, dias: Int): List<VendaDiaResponse> {
+        val hoje = LocalDate.now()
+        val inicioDate = hoje.minusDays((dias - 1).toLong())
+        val vendas = vendasAtivas(filialId, inicioDate.atStartOfDay(), hoje.atTime(23, 59, 59))
+        val porDia = vendas.groupBy { it.data.toLocalDate() }
+        return (0 until dias).map { offset ->
+            val dia = inicioDate.plusDays(offset.toLong())
+            val doDia = porDia[dia] ?: emptyList()
+            VendaDiaResponse(
+                data = dia,
+                quantidade = doDia.size,
+                total = doDia.fold(BigDecimal.ZERO) { acc, v -> acc + v.valorTotal }
+            )
+        }
     }
 
     @LogCall

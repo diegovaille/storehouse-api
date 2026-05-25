@@ -147,4 +147,25 @@ class VendaServiceStatsTest {
         assertEquals(1, soSalgados.size)
         assertEquals("Pao", soSalgados[0].produtoNome)
     }
+
+    @Test
+    fun `serie preenche dias vazios com zero e cobre a janela`() {
+        val hoje = LocalDateTime.now()
+        stubRange(listOf(
+            venda("10.00", data = hoje),
+            venda("5.00", data = hoje.minusDays(2))
+        ))
+
+        val serie = service.serieVendas(filialId, 7)
+
+        assertEquals(7, serie.size)
+        assertEquals(java.time.LocalDate.now(), serie.last().data)        // ordenado asc
+        assertEquals(BigDecimal("10.00"), serie.last().total)
+        assertEquals(1, serie.last().quantidade)
+        val doisDiasAtras = serie.first { it.data == java.time.LocalDate.now().minusDays(2) }
+        assertEquals(BigDecimal("5.00"), doisDiasAtras.total)
+        val ontem = serie.first { it.data == java.time.LocalDate.now().minusDays(1) }
+        assertEquals(0, ontem.quantidade)
+        assertEquals(BigDecimal.ZERO, ontem.total)
+    }
 }
