@@ -167,6 +167,19 @@ class VendaService(
     }
 
     @LogCall
+    fun vendasRecentes(filialId: UUID, limite: Int): List<VendaRecenteResponse> =
+        vendasAtivas(filialId, inicioDoDia(null), fimDoDia(null))
+            .take(limite)
+            .map { v ->
+                VendaRecenteResponse(
+                    id = v.id,
+                    data = v.data.toString(),
+                    metodos = v.pagamentos.map { it.tipo.name }.distinct(),
+                    valorTotal = v.valorTotal
+                )
+            }
+
+    @LogCall
     @Transactional
     fun cancelarVenda(filialId: UUID, id: String) {
         val venda = vendaRepo.findByIdOrNull(UUID.fromString(id))

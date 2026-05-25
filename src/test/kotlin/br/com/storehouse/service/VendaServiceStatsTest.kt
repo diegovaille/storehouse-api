@@ -4,6 +4,7 @@ import br.com.storehouse.data.entities.Filial
 import br.com.storehouse.data.entities.Usuario
 import br.com.storehouse.data.entities.Venda
 import br.com.storehouse.data.repository.FilialRepository
+import br.com.storehouse.data.entities.VendaPagamento
 import br.com.storehouse.data.repository.ProdutoRepository
 import br.com.storehouse.data.repository.UsuarioRepository
 import br.com.storehouse.data.repository.VendaRepository
@@ -42,6 +43,18 @@ class VendaServiceStatsTest {
         data = data
     )
 
+    private fun vendaComPagamentos(
+        total: String,
+        tipos: List<br.com.storehouse.data.enums.TipoPagamento>,
+        data: LocalDateTime = LocalDateTime.now()
+    ): Venda {
+        val v = venda(total, data = data)
+        v.pagamentos = tipos.map {
+            VendaPagamento(venda = v, tipo = it, valor = BigDecimal(total))
+        }
+        return v
+    }
+
     private fun stubRange(vendas: List<Venda>) {
         Mockito.`when`(
             vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(
@@ -66,6 +79,28 @@ class VendaServiceStatsTest {
         assertEquals(BigDecimal("30.00"), r.totalArrecadado)
         assertEquals(BigDecimal("15.00"), r.ticketMedio)
         assertEquals(1, r.vouchersUsados)
+    }
+
+    @Test
+    fun `recentes retorna ate o limite com metodos distintos ignorando canceladas`() {
+        stubRange(listOf(
+            vendaComPagamentos("10.00", listOf(
+                br.com.storehouse.data.enums.TipoPagamento.PIX,
+                br.com.storehouse.data.enums.TipoPagamento.PIX
+            )),
+            vendaComPagamentos("20.00", listOf(
+                br.com.storehouse.data.enums.TipoPagamento.CREDITO,
+                br.com.storehouse.data.enums.TipoPagamento.PIX
+            )),
+            venda("30.00", cancelada = true)
+        ))
+
+        val recentes = service.vendasRecentes(filialId, 4)
+
+        assertEquals(2, recentes.size)
+        assertEquals(listOf("PIX"), recentes[0].metodos)
+        assertEquals(listOf("CREDITO", "PIX"), recentes[1].metodos)
+        assertEquals(BigDecimal("10.00"), recentes[0].valorTotal)
     }
 
     @Test
