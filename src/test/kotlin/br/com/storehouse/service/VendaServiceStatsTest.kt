@@ -79,6 +79,7 @@ class VendaServiceStatsTest {
         assertEquals(BigDecimal("30.00"), r.totalArrecadado)
         assertEquals(BigDecimal("15.00"), r.ticketMedio)
         assertEquals(1, r.vouchersUsados)
+        assertEquals(1, r.cancelados)
     }
 
     @Test
@@ -113,6 +114,22 @@ class VendaServiceStatsTest {
         assertEquals(BigDecimal.ZERO, r.totalArrecadado)
         assertEquals(BigDecimal.ZERO, r.ticketMedio)
         assertEquals(0, r.vouchersUsados)
+        assertEquals(0, r.cancelados)
+    }
+
+    @Test
+    fun `resumo conta canceladas separadamente das ativas`() {
+        stubRange(listOf(
+            venda("10.00"),
+            venda("20.00", cancelada = true),
+            venda("30.00", cancelada = true)
+        ))
+
+        val r = service.resumoVendas(filialId, null, null)
+
+        assertEquals(1, r.quantidade)
+        assertEquals(BigDecimal("10.00"), r.totalArrecadado)
+        assertEquals(2, r.cancelados)
     }
 
     private fun vendaComItens(itens: List<Triple<String, String, Int>>): Venda {

@@ -8,7 +8,8 @@ data class ResumoVendasResponse(
     val quantidade: Int,
     val totalArrecadado: BigDecimal,
     val ticketMedio: BigDecimal,
-    val vouchersUsados: Int
+    val vouchersUsados: Int,
+    val cancelados: Int
 )
 
 data class VendaRecenteResponse(

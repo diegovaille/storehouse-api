@@ -154,16 +154,18 @@ class VendaService(
 
     @LogCall
     fun resumoVendas(filialId: UUID, inicio: String?, fim: String?): ResumoVendasResponse {
-        val vendas = vendasAtivas(filialId, inicioDoDia(inicio), fimDoDia(fim))
-        val quantidade = vendas.size
-        val total = vendas.fold(BigDecimal.ZERO) { acc, v -> acc + v.valorTotal }
+        val todas = vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, inicioDoDia(inicio), fimDoDia(fim))
+        val ativas = todas.filter { !it.cancelada }
+        val quantidade = ativas.size
+        val total = ativas.fold(BigDecimal.ZERO) { acc, v -> acc + v.valorTotal }
         val ticket = if (quantidade == 0) BigDecimal.ZERO
             else total.divide(BigDecimal(quantidade), 2, RoundingMode.HALF_UP)
         return ResumoVendasResponse(
             quantidade = quantidade,
             totalArrecadado = total,
             ticketMedio = ticket,
-            vouchersUsados = vendas.count { it.voucher }
+            vouchersUsados = ativas.count { it.voucher },
+            cancelados = todas.count { it.cancelada }
         )
     }
 
