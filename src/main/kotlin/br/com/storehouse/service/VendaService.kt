@@ -6,6 +6,10 @@ import br.com.storehouse.data.entities.Venda
 import br.com.storehouse.data.entities.VendaItem
 import br.com.storehouse.data.enums.TipoPagamento
 import br.com.storehouse.data.model.ItemVendaResponse
+import br.com.storehouse.data.model.ProdutoMaisVendidoResponse
+import br.com.storehouse.data.model.ResumoVendasResponse
+import br.com.storehouse.data.model.VendaDiaResponse
+import br.com.storehouse.data.model.VendaRecenteResponse
 import br.com.storehouse.data.model.VendaRequest
 import br.com.storehouse.data.model.VendaResponse
 import br.com.storehouse.data.repository.FilialRepository
@@ -133,6 +137,33 @@ class VendaService(
         return vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, dataInicio, dataFim)
             .filter { venda -> !apenasAtiva || !venda.cancelada }
             .map { it.toResponse(relatorio) }
+    }
+
+    private fun inicioDoDia(inicio: String?): LocalDateTime =
+        inicio?.let { LocalDateTime.parse("${it}T00:00:00") }
+            ?: LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0)
+
+    private fun fimDoDia(fim: String?): LocalDateTime =
+        fim?.let { LocalDateTime.parse("${it}T23:59:59") }
+            ?: LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(0)
+
+    private fun vendasAtivas(filialId: UUID, inicio: LocalDateTime, fim: LocalDateTime): List<Venda> =
+        vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, inicio, fim)
+            .filter { !it.cancelada }
+
+    @LogCall
+    fun resumoVendas(filialId: UUID, inicio: String?, fim: String?): ResumoVendasResponse {
+        val vendas = vendasAtivas(filialId, inicioDoDia(inicio), fimDoDia(fim))
+        val quantidade = vendas.size
+        val total = vendas.fold(BigDecimal.ZERO) { acc, v -> acc + v.valorTotal }
+        val ticket = if (quantidade == 0) BigDecimal.ZERO
+            else total.divide(BigDecimal(quantidade), 2, RoundingMode.HALF_UP)
+        return ResumoVendasResponse(
+            quantidade = quantidade,
+            totalArrecadado = total,
+            ticketMedio = ticket,
+            vouchersUsados = vendas.count { it.voucher }
+        )
     }
 
     @LogCall
