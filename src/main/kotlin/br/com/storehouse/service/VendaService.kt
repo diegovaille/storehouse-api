@@ -180,6 +180,26 @@ class VendaService(
             }
 
     @LogCall
+    fun maisVendidos(
+        filialId: UUID, inicio: String?, fim: String?, limite: Int, categoria: String?
+    ): List<ProdutoMaisVendidoResponse> {
+        data class Agg(val nome: String, val categoria: String, var qtd: Int, var total: BigDecimal)
+        val acc = LinkedHashMap<String, Agg>()
+        vendasAtivas(filialId, inicioDoDia(inicio), fimDoDia(fim)).forEach { v ->
+            v.itens.forEach { item ->
+                val cat = item.produto.tipo.nome
+                if (categoria == null || cat.equals(categoria, ignoreCase = true)) {
+                    val agg = acc.getOrPut(item.produto.nome) { Agg(item.produto.nome, cat, 0, BigDecimal.ZERO) }
+                    agg.qtd += item.quantidade
+                    agg.total += item.precoUnitario.multiply(BigDecimal(item.quantidade))
+                }
+            }
+        }
+        return acc.values.sortedByDescending { it.qtd }.take(limite)
+            .map { ProdutoMaisVendidoResponse(it.nome, it.categoria, it.qtd, it.total) }
+    }
+
+    @LogCall
     @Transactional
     fun cancelarVenda(filialId: UUID, id: String) {
         val venda = vendaRepo.findByIdOrNull(UUID.fromString(id))

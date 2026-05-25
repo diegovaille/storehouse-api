@@ -114,4 +114,37 @@ class VendaServiceStatsTest {
         assertEquals(BigDecimal.ZERO, r.ticketMedio)
         assertEquals(0, r.vouchersUsados)
     }
+
+    private fun vendaComItens(itens: List<Triple<String, String, Int>>): Venda {
+        // Triple = (produtoNome, categoria, quantidade); precoUnitario fixed at 5.00
+        val v = venda("0.00")
+        v.itens = itens.map { (nome, cat, qtd) ->
+            val produto = Mockito.mock(br.com.storehouse.data.entities.Produto::class.java)
+            val tipo = Mockito.mock(br.com.storehouse.data.entities.TipoProduto::class.java)
+            Mockito.`when`(produto.nome).thenReturn(nome)
+            Mockito.`when`(tipo.nome).thenReturn(cat)
+            Mockito.`when`(produto.tipo).thenReturn(tipo)
+            br.com.storehouse.data.entities.VendaItem(
+                venda = v, produto = produto, quantidade = qtd, precoUnitario = BigDecimal("5.00")
+            )
+        }
+        return v
+    }
+
+    @Test
+    fun `maisVendidos agrega por produto ordena desc e respeita limite e categoria`() {
+        stubRange(listOf(
+            vendaComItens(listOf(Triple("Cafe", "Bebidas", 3), Triple("Pao", "Salgados", 1))),
+            vendaComItens(listOf(Triple("Cafe", "Bebidas", 2)))
+        ))
+
+        val todos = service.maisVendidos(filialId, null, null, 5, null)
+        assertEquals("Cafe", todos[0].produtoNome)
+        assertEquals(5, todos[0].quantidadeVendida)
+        assertEquals(BigDecimal("25.00"), todos[0].totalArrecadado)
+
+        val soSalgados = service.maisVendidos(filialId, null, null, 5, "Salgados")
+        assertEquals(1, soSalgados.size)
+        assertEquals("Pao", soSalgados[0].produtoNome)
+    }
 }
