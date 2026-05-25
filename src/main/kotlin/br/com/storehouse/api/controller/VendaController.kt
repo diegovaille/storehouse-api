@@ -37,6 +37,34 @@ class VendaController(private val vendaService: VendaService, val relatorioServi
         return vendaService.listarVendasPorPeriodo(usuario.filialId, inicio, fim, apenasAtiva, false)
     }
 
+    @GetMapping("/resumo")
+    fun resumo(
+        @RequestParam(required = false) inicio: String?,
+        @RequestParam(required = false) fim: String?,
+        @AuthenticationPrincipal usuario: UsuarioAutenticado
+    ) = vendaService.resumoVendas(usuario.filialId, inicio, fim)
+
+    @GetMapping("/recentes")
+    fun recentes(
+        @RequestParam(defaultValue = "4") limite: Int,
+        @AuthenticationPrincipal usuario: UsuarioAutenticado
+    ) = vendaService.vendasRecentes(usuario.filialId, limite)
+
+    @GetMapping("/mais-vendidos")
+    fun maisVendidos(
+        @RequestParam(required = false) inicio: String?,
+        @RequestParam(required = false) fim: String?,
+        @RequestParam(defaultValue = "5") limite: Int,
+        @RequestParam(required = false) categoria: String?,
+        @AuthenticationPrincipal usuario: UsuarioAutenticado
+    ) = vendaService.maisVendidos(usuario.filialId, inicio, fim, limite, categoria)
+
+    @GetMapping("/serie")
+    fun serie(
+        @RequestParam(defaultValue = "7") dias: Int,
+        @AuthenticationPrincipal usuario: UsuarioAutenticado
+    ) = vendaService.serieVendas(usuario.filialId, dias)
+
     @DeleteMapping("/{id}")
     fun cancelarVenda(
         @PathVariable id: String,

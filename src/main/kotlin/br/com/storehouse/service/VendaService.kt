@@ -6,6 +6,10 @@ import br.com.storehouse.data.entities.Venda
 import br.com.storehouse.data.entities.VendaItem
 import br.com.storehouse.data.enums.TipoPagamento
 import br.com.storehouse.data.model.ItemVendaResponse
+import br.com.storehouse.data.model.ProdutoMaisVendidoResponse
+import br.com.storehouse.data.model.ResumoVendasResponse
+import br.com.storehouse.data.model.VendaDiaResponse
+import br.com.storehouse.data.model.VendaRecenteResponse
 import br.com.storehouse.data.model.VendaRequest
 import br.com.storehouse.data.model.VendaResponse
 import br.com.storehouse.data.repository.FilialRepository
@@ -21,6 +25,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
 
@@ -133,6 +138,83 @@ class VendaService(
         return vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, dataInicio, dataFim)
             .filter { venda -> !apenasAtiva || !venda.cancelada }
             .map { it.toResponse(relatorio) }
+    }
+
+    private fun inicioDoDia(inicio: String?): LocalDateTime =
+        inicio?.let { LocalDateTime.parse("${it}T00:00:00") }
+            ?: LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0)
+
+    private fun fimDoDia(fim: String?): LocalDateTime =
+        fim?.let { LocalDateTime.parse("${it}T23:59:59") }
+            ?: LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(0)
+
+    private fun vendasAtivas(filialId: UUID, inicio: LocalDateTime, fim: LocalDateTime): List<Venda> =
+        vendaRepo.findByFilialIdAndDataBetweenOrderByDataDesc(filialId, inicio, fim)
+            .filter { !it.cancelada }
+
+    @LogCall
+    fun resumoVendas(filialId: UUID, inicio: String?, fim: String?): ResumoVendasResponse {
+        val vendas = vendasAtivas(filialId, inicioDoDia(inicio), fimDoDia(fim))
+        val quantidade = vendas.size
+        val total = vendas.fold(BigDecimal.ZERO) { acc, v -> acc + v.valorTotal }
+        val ticket = if (quantidade == 0) BigDecimal.ZERO
+            else total.divide(BigDecimal(quantidade), 2, RoundingMode.HALF_UP)
+        return ResumoVendasResponse(
+            quantidade = quantidade,
+            totalArrecadado = total,
+            ticketMedio = ticket,
+            vouchersUsados = vendas.count { it.voucher }
+        )
+    }
+
+    @LogCall
+    fun vendasRecentes(filialId: UUID, limite: Int): List<VendaRecenteResponse> =
+        vendasAtivas(filialId, inicioDoDia(null), fimDoDia(null))
+            .take(limite)
+            .map { v ->
+                VendaRecenteResponse(
+                    id = v.id,
+                    data = v.data.toString(),
+                    metodos = v.pagamentos.map { it.tipo.name }.distinct(),
+                    valorTotal = v.valorTotal
+                )
+            }
+
+    @LogCall
+    fun maisVendidos(
+        filialId: UUID, inicio: String?, fim: String?, limite: Int, categoria: String?
+    ): List<ProdutoMaisVendidoResponse> {
+        data class Agg(val nome: String, val categoria: String, var qtd: Int, var total: BigDecimal)
+        val acc = LinkedHashMap<String, Agg>()
+        vendasAtivas(filialId, inicioDoDia(inicio), fimDoDia(fim)).forEach { v ->
+            v.itens.forEach { item ->
+                val cat = item.produto.tipo.nome
+                if (categoria == null || cat.equals(categoria, ignoreCase = true)) {
+                    val agg = acc.getOrPut(item.produto.nome) { Agg(item.produto.nome, cat, 0, BigDecimal.ZERO) }
+                    agg.qtd += item.quantidade
+                    agg.total += item.precoUnitario.multiply(BigDecimal(item.quantidade))
+                }
+            }
+        }
+        return acc.values.sortedByDescending { it.qtd }.take(limite)
+            .map { ProdutoMaisVendidoResponse(it.nome, it.categoria, it.qtd, it.total) }
+    }
+
+    @LogCall
+    fun serieVendas(filialId: UUID, dias: Int): List<VendaDiaResponse> {
+        val hoje = LocalDate.now()
+        val inicioDate = hoje.minusDays((dias - 1).toLong())
+        val vendas = vendasAtivas(filialId, inicioDate.atStartOfDay(), hoje.atTime(23, 59, 59))
+        val porDia = vendas.groupBy { it.data.toLocalDate() }
+        return (0 until dias).map { offset ->
+            val dia = inicioDate.plusDays(offset.toLong())
+            val doDia = porDia[dia] ?: emptyList()
+            VendaDiaResponse(
+                data = dia,
+                quantidade = doDia.size,
+                total = doDia.fold(BigDecimal.ZERO) { acc, v -> acc + v.valorTotal }
+            )
+        }
     }
 
     @LogCall
