@@ -17,7 +17,7 @@ class VendaResponseContractTest {
     fun `ItemVendaResponse mantem os campos publicos esperados`() {
         val nomes = ItemVendaResponse::class.java.declaredFields.map { it.name }.toSet()
         assertEquals(
-            setOf("produtoNome", "categoria", "quantidade", "precoUnitario", "estoque", "precoCusto"),
+            setOf("produtoNome", "categoria", "quantidade", "precoUnitario", "estoque", "precoCusto", "cor", "tamanho"),
             nomes
         )
     }

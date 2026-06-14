@@ -20,5 +20,11 @@ class VendaItem(
     var quantidade: Int = 0,
 
     @Column(name = "preco_unitario", nullable = false, precision = 10, scale = 2)
-    var precoUnitario: BigDecimal
+    var precoUnitario: BigDecimal,
+
+    @Column(name = "cor")
+    var cor: String? = null,
+
+    @Column(name = "tamanho")
+    var tamanho: String? = null
 )
