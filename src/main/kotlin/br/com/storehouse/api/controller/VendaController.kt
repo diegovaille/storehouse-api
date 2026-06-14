@@ -11,7 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 
 @RestController
-@RequestMapping("/api/vendas")
+@RequestMapping(value = ["/api/vendas", "/api/v1/vendas"])
 class VendaController(private val vendaService: VendaService, val relatorioService: RelatorioService) {
 
     @PostMapping
