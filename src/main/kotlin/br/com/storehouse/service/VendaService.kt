@@ -41,7 +41,8 @@ class VendaService(
     fun registrarVenda(
         filialId: UUID,
         request: VendaRequest,
-        emailUsuario: String
+        emailUsuario: String,
+        voucherSomenteItemMaisCaro: Boolean = false
     ): VendaResponse {
 
         val usuario = usuarioRepository.findByEmail(emailUsuario)
@@ -92,9 +93,17 @@ class VendaService(
 
         var total = calcularTotal(vendaItens)
 
-        // aplica desconto se for voucher (50%)
+        // Voucher:
+        //  - v1 (default): 50% sobre o total da venda.
+        //  - v2 (voucherSomenteItemMaisCaro): 50% sobre UMA unidade do produto de maior preço unitário.
         if (request.voucher) {
-            total = total.divide(BigDecimal(2), 2, RoundingMode.HALF_UP)
+            total = if (voucherSomenteItemMaisCaro) {
+                val maxUnitario = vendaItens.maxOfOrNull { it.precoUnitario } ?: BigDecimal.ZERO
+                val desconto = maxUnitario.divide(BigDecimal(2), 2, RoundingMode.HALF_UP)
+                (total - desconto).max(BigDecimal.ZERO)
+            } else {
+                total.divide(BigDecimal(2), 2, RoundingMode.HALF_UP)
+            }
         }
 
         venda.valorTotal = total
