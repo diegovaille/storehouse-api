@@ -1,0 +1,40 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="criar-tabela-solicitacao" author="dev">
+        <createTable tableName="solicitacao">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="filial_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="descricao_item" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="categoria" type="VARCHAR(60)"/>
+            <column name="nome_solicitante" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="contato" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="observacao" type="VARCHAR(500)"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="SOLICITADO">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_criacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_atualizacao" type="TIMESTAMP"/>
+            <column name="notificado_em" type="TIMESTAMP"/>
+        </createTable>
+        <addForeignKeyConstraint
+            baseTableName="solicitacao" baseColumnNames="filial_id"
+            referencedTableName="filial" referencedColumnNames="id"
+            constraintName="fk_solicitacao_filial"/>
+    </changeSet>
+</databaseChangeLog>

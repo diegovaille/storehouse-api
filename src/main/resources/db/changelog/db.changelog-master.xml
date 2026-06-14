@@ -28,4 +28,5 @@
     <include file="db/changelog/db.changelog-4.0-multi-empresa.xml"/>
     <include file="db/changelog/db.changelog-4.1-clientes.xml"/>
     <include file="db/changelog/db.changelog-4.2-venda-item-variante.xml"/>
+    <include file="db/changelog/db.changelog-4.3-solicitacoes.xml"/>
 </databaseChangeLog>
