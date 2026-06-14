@@ -72,4 +72,71 @@ class VendaServiceVoucherTest {
         // preco 25 * 2 = 50; voucher 50% => 25
         assertEquals(BigDecimal("25.00"), response.valorTotal)
     }
+
+    private fun mockProduto(nome: String, preco: String, barras: String, filialId: UUID): Produto {
+        val produto = Mockito.mock(Produto::class.java)
+        Mockito.`when`(produto.nome).thenReturn(nome)
+        val tipo = Mockito.mock(TipoProduto::class.java)
+        Mockito.`when`(tipo.nome).thenReturn("Livro")
+        Mockito.`when`(produto.tipo).thenReturn(tipo)
+        val estado = ProdutoEstado(
+            produto = produto,
+            preco = BigDecimal(preco),
+            estoque = 10,
+            dataInicio = LocalDateTime.now(),
+            precoCusto = BigDecimal("1.00")
+        )
+        Mockito.`when`(produto.estadoAtual).thenReturn(estado)
+        Mockito.`when`(produtoRepo.findByCodigoBarrasAndFilialIdAndExcluidoFalse(barras, filialId))
+            .thenReturn(produto)
+        return produto
+    }
+
+    @Test
+    fun `v2 - voucher desconta 50pct de uma unidade (item unico)`() {
+        val filialId = UUID.randomUUID()
+        val usuario = Usuario(id = UUID.randomUUID(), username = "diego", email = "a@a.com")
+        Mockito.`when`(usuarioRepo.findByEmail("a@a.com")).thenReturn(usuario)
+        val filial = Mockito.mock(br.com.storehouse.data.entities.Filial::class.java)
+        Mockito.`when`(filialRepo.findById(filialId)).thenReturn(Optional.of(filial))
+
+        mockProduto(nome = "Livro Teste", preco = "25.00", barras = "123", filialId = filialId)
+
+        val request = VendaRequest(
+            voucher = true,
+            itens = listOf(ItemVendaRequest(codigoBarras = "123", quantidade = 2)),
+            pagamentos = listOf(PagamentoVendaRequest(tipo = "DINHEIRO", valor = BigDecimal("37.50")))
+        )
+
+        val response = service.registrarVenda(filialId, request, "a@a.com", voucherSomenteItemMaisCaro = true)
+
+        // subtotal 25*2 = 50; desconto = 50% de UMA unidade (25) = 12.50; total = 37.50
+        assertEquals(BigDecimal("37.50"), response.valorTotal)
+    }
+
+    @Test
+    fun `v2 - voucher desconta 50pct da unidade mais cara entre produtos`() {
+        val filialId = UUID.randomUUID()
+        val usuario = Usuario(id = UUID.randomUUID(), username = "diego", email = "a@a.com")
+        Mockito.`when`(usuarioRepo.findByEmail("a@a.com")).thenReturn(usuario)
+        val filial = Mockito.mock(br.com.storehouse.data.entities.Filial::class.java)
+        Mockito.`when`(filialRepo.findById(filialId)).thenReturn(Optional.of(filial))
+
+        mockProduto(nome = "Livro Barato", preco = "25.00", barras = "123", filialId = filialId)
+        mockProduto(nome = "Livro Caro", preco = "60.00", barras = "456", filialId = filialId)
+
+        val request = VendaRequest(
+            voucher = true,
+            itens = listOf(
+                ItemVendaRequest(codigoBarras = "123", quantidade = 1),
+                ItemVendaRequest(codigoBarras = "456", quantidade = 1)
+            ),
+            pagamentos = listOf(PagamentoVendaRequest(tipo = "DINHEIRO", valor = BigDecimal("55.00")))
+        )
+
+        val response = service.registrarVenda(filialId, request, "a@a.com", voucherSomenteItemMaisCaro = true)
+
+        // subtotal 85; desconto = 50% de 60 (mais caro) = 30; total = 55.00
+        assertEquals(BigDecimal("55.00"), response.valorTotal)
+    }
 }
