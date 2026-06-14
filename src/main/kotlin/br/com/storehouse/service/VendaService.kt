@@ -87,7 +87,9 @@ class VendaService(
                 produto = produto,
                 quantidade = item.quantidade,
                 // Voucher será aplicado no TOTAL final, não no preço unitário.
-                precoUnitario = estadoAtual.preco
+                precoUnitario = estadoAtual.preco,
+                cor = item.cor,
+                tamanho = item.tamanho
             )
         }
 
@@ -275,6 +277,8 @@ fun Venda.toResponse(relatorio: Boolean): VendaResponse = VendaResponse(
             precoUnitario = it.precoUnitario,
             estoque = if (relatorio) it.produto.estadoAtual!!.estoque else null,
             precoCusto = if (relatorio) it.produto.estadoAtual!!.precoCusto else null,
+            cor = it.cor,
+            tamanho = it.tamanho,
         )
     }
 )

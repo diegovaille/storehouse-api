@@ -10,7 +10,9 @@ data class VendaRequest(
 
 data class ItemVendaRequest(
     val codigoBarras: String,
-    val quantidade: Int
+    val quantidade: Int,
+    val cor: String? = null,
+    val tamanho: String? = null
 )
 
 data class PagamentoVendaRequest(
