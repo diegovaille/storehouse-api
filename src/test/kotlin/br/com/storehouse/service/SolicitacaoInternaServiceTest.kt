@@ -123,6 +123,23 @@ class SolicitacaoInternaServiceTest {
     }
 
     @Test
+    fun `receber solicitacao cancelada e rejeitado`() {
+        val sol = SolicitacaoInterna(
+            filial = filial(), produto = produtoComEstoque(7), descricaoItem = "Camiseta P",
+            quantidade = 7, solicitanteEmail = "staff@pib.com",
+            status = StatusSolicitacaoInterna.CANCELADO
+        )
+        Mockito.`when`(repo.findById(sol.id)).thenReturn(Optional.of(sol))
+
+        assertThrows(RequisicaoInvalidaException::class.java) {
+            service.atualizar(
+                filialId, sol.id.toString(),
+                SolicitacaoInternaUpdateRequest(status = StatusSolicitacaoInterna.RECEBIDO)
+            )
+        }
+    }
+
+    @Test
     fun `solicitacao de outra filial e invisivel`() {
         val sol = SolicitacaoInterna(
             filial = filial(outraFilialId), descricaoItem = "X",
