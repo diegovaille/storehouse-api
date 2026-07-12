@@ -42,6 +42,45 @@ src/main/kotlin/br/com/storehouse/api/controller/AdminUsuarioController.kt:20:  
 
 Qualquer output novo em (a) ou (b) é violação real.
 
+## Limites destas checagens — o que elas NÃO veem
+
+As três checagens estão limpas hoje, e o que elas pegam elas pegam de
+verdade. Mas cada uma é mais estreita que a regra que enforça. Isto é
+deliberado — estreita-mas-silenciosa vale mais que ampla-mas-barulhenta, e
+uma checagem em que ninguém confia não checa nada. O preço é este, e está
+escrito para que ninguém confie nelas mais do que merecem:
+
+- **(b) o `grep -vE 'Usuario|Perfil|Organizacao'` casa o CAMINHO do arquivo,
+  não só a assinatura do método.** Um `fun findByUsuarioId(...)` adicionado a
+  um repository qualquer é engolido em silêncio — o filtro não distingue "é
+  um repository de identidade" de "tem a palavra Usuario na linha".
+- **(b) só casa `^\s*fun find`.** `countBy`, `existsBy`, `deleteBy` e métodos
+  com `@Query` são invisíveis para ela — um `deleteBy...` sem escopo de
+  filial passa liso.
+- **(a) é por ARQUIVO, não por método.** Um controller passa se
+  `@AuthenticationPrincipal` aparecer em qualquer lugar dele. Um método de
+  escrita novo, sem escopo, adicionado a um controller já escopado, passa
+  silenciosamente.
+
+## A rota de escrita sem guard de role NÃO tem checagem mecânica
+
+A parte da regra que diz "rota de escrita declara role com `hasRole(...)`" é
+a única sem nenhuma checagem. As três checagens acima não a enxergam: (c) só
+acha `hasAuthority` onde ele **existe**; um `@PostMapping` com guard **nenhum**
+não produz output em lugar nenhum.
+
+Isto é uma **lacuna aceita, não um esquecimento.** Não adicionar um
+`rg -L PreAuthorize` por cima dos controllers: a maioria deles legitimamente
+não tem `@PreAuthorize` (são autenticados-mas-não-admin-only), então essa
+checagem acusaria todos e viraria ruído — e uma checagem que grita lobo é
+pior que lacuna nenhuma, porque ensina a ignorar a saída.
+
+Enquanto não houver um jeito de expressar "esta rota deveria ser admin-only"
+no código, esta regra se verifica **lendo o controller**: ao criar ou revisar
+um `@Post/@Put/@Patch/@DeleteMapping`, decidir explicitamente se ele é
+admin-only e, se for, anotar `@PreAuthorize("hasRole(\"ADMIN\")")`. Nenhum
+comando vai lembrar por você.
+
 ## O que quebra se violar
 
 Sem escopo por `filialId` vindo do principal, uma filial lê ou escreve dado
@@ -49,10 +88,27 @@ de outra filial (ou organização) manipulando o request body ou omitindo o
 filtro na query — vazamento entre tenants. `hasAuthority('ADMIN')` faz o
 `@PreAuthorize` nunca barrar ninguém autenticado, silenciosamente.
 
-## Violação conhecida
+## Violações conhecidas — **não corrigir de passagem**
 
-`AdminUsuarioController.kt:20` — `@PreAuthorize("hasAuthority('ADMIN')")`
-nunca casa, pelo motivo acima. **Não corrigir de passagem.**
+Duas, hoje. Ambas são **conhecidas**: registradas para não serem confundidas
+com comportamento esperado, e **a não corrigir de passagem** — só mexer se a
+tarefa pedir explicitamente.
+
+1. **`AdminUsuarioController.kt:20`** — `@PreAuthorize("hasAuthority('ADMIN')")`
+   nunca casa, pelo motivo acima (o filtro concede `ROLE_ADMIN`). A rota fica
+   sem guard efetivo. Pega pela checagem (c).
+
+2. **`SolicitacaoController.kt`**
+   (`src/main/kotlin/br/com/storehouse/api/controller/SolicitacaoController.kt`)
+   — **duas rotas de escrita e zero guard de role**: `@PostMapping` (`:17`) e
+   `@PatchMapping("/{id}")` (`:31`), nenhum `@PreAuthorize` em lugar nenhum do
+   arquivo. O commit que introduziu o controller (`feat(solicitacoes)`)
+   descreve os endpoints como admin-only, mas nada no código os restringe:
+   hoje qualquer usuário autenticado (inclusive `VENDEDOR`) cria e altera
+   solicitação. O escopo de filial está correto (o controller usa
+   `@AuthenticationPrincipal`, por isso a checagem (a) passa) — o que falta é
+   só a role. **Nenhuma das três checagens pega esta violação**, pelo motivo
+   da seção anterior; ela só existe porque alguém leu o controller.
 
 ## Exclusões — deliberadas, não remover
 
