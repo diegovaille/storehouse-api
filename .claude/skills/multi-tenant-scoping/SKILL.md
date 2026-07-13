@@ -34,13 +34,9 @@ rg -n --glob 'src/main/kotlin/br/com/storehouse/data/repository/*.kt' '^\s*fun f
 rg -n --glob 'src/main/**/*.kt' 'hasAuthority'
 ```
 
-Saída esperada hoje: (a) e (b) limpas (sem output). (c):
+Saída esperada hoje: (a), (b) e (c) limpas (sem output).
 
-```
-src/main/kotlin/br/com/storehouse/api/controller/AdminUsuarioController.kt:20:    @PreAuthorize("hasAuthority('ADMIN')")
-```
-
-Qualquer output novo em (a) ou (b) é violação real.
+Qualquer output novo em (a), (b) ou (c) é violação real.
 
 ## Limites destas checagens — o que elas NÃO veem
 
@@ -90,15 +86,10 @@ filtro na query — vazamento entre tenants. `hasAuthority('ADMIN')` faz o
 
 ## Violações conhecidas — **não corrigir de passagem**
 
-Duas, hoje. Ambas são **conhecidas**: registradas para não serem confundidas
-com comportamento esperado, e **a não corrigir de passagem** — só mexer se a
-tarefa pedir explicitamente.
+Uma, hoje. Registrada para não ser confundida com comportamento esperado, e
+**a não corrigir de passagem** — só mexer se a tarefa pedir explicitamente.
 
-1. **`AdminUsuarioController.kt:20`** — `@PreAuthorize("hasAuthority('ADMIN')")`
-   nunca casa, pelo motivo acima (o filtro concede `ROLE_ADMIN`). A rota fica
-   sem guard efetivo. Pega pela checagem (c).
-
-2. **`SolicitacaoController.kt`**
+1. **`SolicitacaoController.kt`**
    (`src/main/kotlin/br/com/storehouse/api/controller/SolicitacaoController.kt`)
    — **duas rotas de escrita e zero guard de role**: `@PostMapping` (`:17`) e
    `@PatchMapping("/{id}")` (`:31`), nenhum `@PreAuthorize` em lugar nenhum do
@@ -109,6 +100,13 @@ tarefa pedir explicitamente.
    `@AuthenticationPrincipal`, por isso a checagem (a) passa) — o que falta é
    só a role. **Nenhuma das três checagens pega esta violação**, pelo motivo
    da seção anterior; ela só existe porque alguém leu o controller.
+
+> **`AdminUsuarioController.kt:20`** tinha exatamente este bug
+> (`@PreAuthorize("hasAuthority('ADMIN')")` nunca casava com `ROLE_ADMIN`,
+> deixando `POST /api/admin/usuarios` retornando 403 para todo mundo,
+> inclusive admin). Corrigido para `hasRole('ADMIN')` — ver
+> `AdminUsuarioControllerAuthorizationTest.kt`, que prova a authorization
+> check com `ROLE_ADMIN` passando e `ROLE_VENDEDOR` sendo barrado.
 
 ## Exclusões — deliberadas, não remover
 

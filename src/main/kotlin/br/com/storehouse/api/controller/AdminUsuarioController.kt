@@ -17,7 +17,7 @@ class AdminUsuarioController(
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     fun create(
         @RequestBody request: NovoUsuarioRequest,
         @AuthenticationPrincipal principal: UsuarioAutenticado

@@ -81,11 +81,6 @@ corrigir se a tarefa pedir explicitamente.
   um novo estado. Viola o próprio padrão temporal que `registrarVenda` segue
   corretamente logo acima, em `VendaService.kt:61-94` (fecha `dataFim` do
   estado atual e cria um `ProdutoEstado` novo).
-- **`AdminUsuarioController.kt:20`** — `@PreAuthorize("hasAuthority('ADMIN')")`
-  nunca casa. `JwtAuthenticationFilter.kt:69` concede
-  `SimpleGrantedAuthority("ROLE_${perfil.uppercase()}")`, ou seja
-  `ROLE_ADMIN` — a forma correta é `hasRole("ADMIN")` (é o que
-  `SecurityConfig.kt:52` já usa para `/api/admin/**`).
 - **`SolicitacaoController`** — nenhum método tem guard de role, apesar de o
   commit que o introduziu (`feat(solicitacoes)`) descrever os endpoints como
   admin-only.
