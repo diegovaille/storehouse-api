@@ -1,0 +1,44 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="criar-tabela-solicitacao-interna" author="dev">
+        <createTable tableName="solicitacao_interna">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="filial_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="produto_id" type="UUID"/>
+            <column name="descricao_item" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantidade" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="solicitante_email" type="VARCHAR(120)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="observacao" type="VARCHAR(500)"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="SOLICITADO">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_criacao" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="data_atualizacao" type="TIMESTAMP"/>
+            <column name="data_recebimento" type="TIMESTAMP"/>
+        </createTable>
+        <addForeignKeyConstraint
+            baseTableName="solicitacao_interna" baseColumnNames="filial_id"
+            referencedTableName="filial" referencedColumnNames="id"
+            constraintName="fk_solicitacao_interna_filial"/>
+        <addForeignKeyConstraint
+            baseTableName="solicitacao_interna" baseColumnNames="produto_id"
+            referencedTableName="produto" referencedColumnNames="id"
+            constraintName="fk_solicitacao_interna_produto"/>
+    </changeSet>
+</databaseChangeLog>

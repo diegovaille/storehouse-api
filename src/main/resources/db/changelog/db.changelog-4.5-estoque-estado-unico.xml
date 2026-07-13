@@ -1,0 +1,95 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!--
+        Garante, a nível de banco, que cada produto tem no máximo um ProdutoEstado aberto
+        (data_fim IS NULL) por vez. Ver skill estoque-temporal e
+        ProdutoEstadoService.transicionar (o saveAndFlush do estado que está sendo fechado
+        depende deste índice para ter efeito prático).
+
+        Repontar + limpar + criar o índice é UM changeSet só (não três), de propósito: as
+        etapas precisam commitar como uma unidade atômica. Se a limpeza e o índice fossem
+        changeSets separados (como já foi feito numa versão anterior deste arquivo), o
+        Liquibase abre uma transação nova para cada um — no intervalo entre elas, uma
+        instância antiga ainda em rolling deploy (rodando o código sem a trava) pode inserir
+        um segundo estado aberto para algum produto, e o CREATE UNIQUE INDEX do changeset
+        seguinte falha ao encontrar dado inconsistente de novo. Num único changeSet, a
+        limpeza e a criação do índice correm na MESMA transação: a trava que o índice
+        adquire ao ser construído bloqueia qualquer escritor concorrente de inserir uma
+        linha entre a limpeza e o commit.
+
+        Por isso também NÃO usamos CREATE INDEX CONCURRENTLY aqui: ele exige
+        runInTransaction="false" (não pode rodar dentro de uma transação), o que quebraria a
+        atomicidade com a limpeza acima, e deixa um índice INVALID para trás se falhar por
+        conflito — exigindo intervenção manual para descobrir e corrigir. produto_estado é
+        uma tabela pequena numa loja única (não um sistema multi-tenant de grande escala); o
+        bloqueio de escrita breve que o build padrão (não-concorrente) do índice causa é o
+        trade-off correto aqui. Não "otimizar" isso para CONCURRENTLY sem reavaliar essa
+        premissa (tabela pequena, não multi-tenant).
+    -->
+
+    <changeSet id="estoque-estado-unico" author="dev">
+        <!--
+            1) Repontar: se estado_atual_id já é NULL, "estadoAtual é a fonte da verdade" não
+            vale — não há fonte da verdade nenhuma para preservar. Nesse caso o certo é
+            RECUPERAR o estado aberto mais recente (não destruí-lo): sem isso, o passo de
+            limpeza abaixo (que fecha tudo que não é o estado_atual_id) fecharia TODOS os
+            estados abertos do produto, inclusive o único que existia, deixando o produto com
+            zero estados abertos — aplicarDelta então lança em qualquer venda/cancelamento
+            futuro, ProdutoResponse relata 0/0, e o PATCH /estoque cai no self-heal de
+            ProdutoEstadoService.definir (que agora falha alto em vez de zerar preço/custo
+            silenciosamente, ver ProdutoEstadoServiceTest).
+        -->
+        <sql>
+            UPDATE produto p
+               SET estado_atual_id = (
+                   SELECT pe.id FROM produto_estado pe
+                    WHERE pe.produto_id = p.id AND pe.data_fim IS NULL
+                    ORDER BY pe.data_inicio DESC
+                    LIMIT 1)
+             WHERE p.estado_atual_id IS NULL;
+        </sql>
+
+        <!--
+            2) Limpeza: agora que todo produto com pelo menos um estado aberto tem
+            estado_atual_id preenchido (pelo passo acima, ou porque já apontava para algum
+            estado), fechar (data_fim = NOW()) todo estado aberto que NÃO seja o
+            estado_atual_id do produto — o resto é lixo de corrida de antes deste índice
+            existir. A condição não tem mais o ramo "OR p.estado_atual_id IS NULL": esse ramo
+            é exatamente o que destruía o único estado aberto de um produto órfão antes do
+            passo 1 existir.
+        -->
+        <sql>
+            UPDATE produto_estado pe
+               SET data_fim = NOW()
+              FROM produto p
+             WHERE pe.produto_id = p.id
+               AND pe.data_fim IS NULL
+               AND pe.id &lt;&gt; p.estado_atual_id;
+        </sql>
+
+        <!--
+            3) Índice: createIndex não expressa índice parcial (WHERE); precisa ser <sql>
+            puro. IF NOT EXISTS cobre o caso de alguém já ter aplicado este índice na mão em
+            produção antes deste changeSet existir.
+        -->
+        <sql>
+            CREATE UNIQUE INDEX IF NOT EXISTS uk_produto_estado_aberto
+                ON produto_estado (produto_id) WHERE data_fim IS NULL;
+        </sql>
+
+        <rollback>
+            <!--
+                A limpeza de dados (repontar estado_atual_id, fechar órfãos) é
+                intencionalmente irreversível: não guardamos o estado_atual_id original nem
+                quais linhas foram fechadas pela limpeza versus já fechadas antes dela, então
+                não há nada confiável para restaurar. Só desfazemos a parte estrutural
+                (o índice).
+            -->
+            <sql>DROP INDEX IF EXISTS uk_produto_estado_aberto;</sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

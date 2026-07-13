@@ -1,0 +1,200 @@
+package br.com.storehouse.service
+
+import br.com.storehouse.data.entities.Produto
+import br.com.storehouse.data.entities.ProdutoEstado
+import br.com.storehouse.data.repository.ProdutoEstadoRepository
+import br.com.storehouse.data.repository.ProdutoRepository
+import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
+import br.com.storehouse.exceptions.EstadoInvalidoException
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.util.UUID
+
+/**
+ * Dono único da cadeia temporal de ProdutoEstado.
+ *
+ * O estoque (e o preço, e o preço de custo) não vivem em Produto — vivem numa cadeia de
+ * ProdutoEstado, onde o estado aberto (dataFim == null) é o atual. Mudar qualquer um dos três
+ * significa FECHAR o estado atual e ABRIR um novo. Nunca mutar em lugar.
+ *
+ * Antes deste service, essa regra era reimplementada à mão em seis lugares — e um deles
+ * (cancelamento de venda) fazia errado. Agora existe um lugar só, e ele trava a linha do
+ * produto (SELECT ... FOR UPDATE) para que escritores concorrentes serializem.
+ *
+ * NINGUÉM constrói ProdutoEstado fora daqui. Há um comando de checagem no skill
+ * estoque-temporal que falha se alguém tentar.
+ */
+@Service
+class ProdutoEstadoService(
+    private val produtoRepository: ProdutoRepository,
+    private val produtoEstadoRepository: ProdutoEstadoRepository
+) {
+
+    /**
+     * Primeiro estado de um produto recém-criado. Sem lock: ninguém mais conhece esse produto ainda.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun criarInicial(
+        produto: Produto,
+        estoque: Int,
+        preco: BigDecimal,
+        precoCusto: BigDecimal
+    ): ProdutoEstado {
+        if (estoque < 0) {
+            throw EstadoInvalidoException("Estoque não pode ser negativo: $estoque")
+        }
+        val estado = ProdutoEstado(
+            produto = produto,
+            estoque = estoque,
+            preco = preco,
+            precoCusto = precoCusto
+        )
+        produtoEstadoRepository.save(estado)
+        produto.estadoAtual = estado
+        produtoRepository.save(produto)
+        return estado
+    }
+
+    /**
+     * Soma um delta ao estoque, preservando os preços. Venda: delta negativo.
+     * Recebimento e cancelamento de venda: delta positivo.
+     *
+     * A checagem de estoque insuficiente acontece AQUI, sob o lock — é o que torna
+     * impossível (e não apenas improvável) vender a descoberto em duas vendas simultâneas.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun aplicarDelta(produtoId: UUID, delta: Int): ProdutoEstado {
+        val produto = travar(produtoId)
+        val atual = estadoAtualDe(produto)
+
+        // Delta zero não muda nada: não abre estado novo idêntico só para registrar um no-op.
+        if (delta == 0) {
+            return atual
+        }
+
+        val novoEstoque = atual.estoque + delta
+        if (novoEstoque < 0) {
+            throw EstadoInvalidoException(
+                "Estoque insuficiente para o produto ${produto.codigoBarras}: " +
+                    "atual ${atual.estoque}, delta $delta"
+            )
+        }
+
+        return transicionar(produto, atual, novoEstoque, atual.preco, atual.precoCusto)
+    }
+
+    /**
+     * Define valores absolutos. preco/precoCusto nulos = preservar os atuais (quando já existe
+     * um estado aberto). Usado pela edição de produto (sempre envia preco e precoCusto reais) e
+     * pelo PATCH de estoque (nunca envia preco/precoCusto — só ajusta a quantidade).
+     *
+     * Quando NÃO existe estado aberto, só se auto-cura criando o primeiro estado se preco E
+     * precoCusto foram informados; caso contrário lança EstadoInvalidoException em vez de
+     * inventar zero (ver comentário abaixo).
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun definir(
+        produtoId: UUID,
+        estoque: Int,
+        preco: BigDecimal? = null,
+        precoCusto: BigDecimal? = null
+    ): ProdutoEstado {
+        if (estoque < 0) {
+            throw EstadoInvalidoException("Estoque não pode ser negativo: $estoque")
+        }
+        val produto = travar(produtoId)
+        val atual = estadoAbertoDe(produto.id)
+
+        // Produto legado/órfão sem estadoAtual (a coluna é nullable no banco): não há estado
+        // para preservar nem para fechar. O self-heal só é seguro quando quem chamou trouxe
+        // preço E custo de verdade (tela de edição de produto, atualizarProdutoExistente) —
+        // nesse caso cria o primeiro estado com esses valores. Quando qualquer um dos dois
+        // está ausente (PATCH de só-estoque, ProdutoService.atualizarEstoque, que sempre
+        // chama definir(id, novoEstoque) sem preço/custo), NÃO auto-curar com zero: isso
+        // abriria um estado com preço 0,00 e precoCusto 0,00 silenciosamente — o PDV passaria
+        // a vender o produto de graça e todo relatório de margem leria zero, sem exceção nem
+        // log. Falhar alto aqui em vez disso, dizendo ao operador o que fazer.
+        if (atual == null) {
+            if (preco == null || precoCusto == null) {
+                throw EstadoInvalidoException(
+                    "Produto $produtoId não possui estado atual: edite o produto para definir " +
+                        "preço e custo antes de ajustar o estoque"
+                )
+            }
+            return criarInicial(produto, estoque, preco, precoCusto)
+        }
+
+        val novoPreco = preco ?: atual.preco
+        val novoPrecoCusto = precoCusto ?: atual.precoCusto
+
+        // Nada mudou: não abre estado novo (evita poluir a cadeia com estados idênticos).
+        if (atual.estoque == estoque && atual.preco == novoPreco && atual.precoCusto == novoPrecoCusto) {
+            return atual
+        }
+
+        return transicionar(produto, atual, estoque, novoPreco, novoPrecoCusto)
+    }
+
+    private fun travar(produtoId: UUID): Produto =
+        produtoRepository.findByIdForUpdate(produtoId)
+            ?: throw EntidadeNaoEncontradaException("Produto $produtoId não encontrado")
+
+    /**
+     * Lê o estado aberto (`data_fim IS NULL`) do produto por uma query DIRETA em
+     * `produto_estado`, em vez de confiar em `produto.estadoAtual`.
+     *
+     * NÃO é a mesma coisa, sob concorrência: quando o `Produto` já foi carregado ANTES do
+     * lock (ex.: `VendaService.registrarVenda` resolve os produtos pelo código de barras,
+     * sem lock, antes de chamar `aplicarDelta`), esse objeto já está no mapa de identidade
+     * da sessão do Hibernate — e uma query subsequente por ID (como `findByIdForUpdate`,
+     * usada só para ADQUIRIR o lock) não sobrescreve os campos/associações de uma entidade
+     * JÁ gerenciada. Ler `produto.estadoAtual` depois do lock devolveria o estado de ANTES
+     * do lock, não o estado atual de verdade — inclusive um estado que outra transação já
+     * fechou e substituiu enquanto esta esperava o lock. Buscar por
+     * `produto_id + data_fim IS NULL` sempre bate no banco com um ID que a sessão ainda não
+     * conhece (o estado novo tem sempre um UUID novo), então não tem esse problema.
+     */
+    private fun estadoAbertoDe(produtoId: UUID): ProdutoEstado? =
+        produtoEstadoRepository.findByProdutoIdAndDataFimIsNull(produtoId)
+
+    private fun estadoAtualDe(produto: Produto): ProdutoEstado =
+        estadoAbertoDe(produto.id)
+            ?: throw EstadoInvalidoException("Produto ${produto.id} não possui estado atual definido")
+
+    /** Fecha o estado atual e abre um novo. O único lugar que faz isso. */
+    private fun transicionar(
+        produto: Produto,
+        atual: ProdutoEstado,
+        estoque: Int,
+        preco: BigDecimal,
+        precoCusto: BigDecimal
+    ): ProdutoEstado {
+        val agora = LocalDateTime.now()
+        atual.dataFim = agora
+        // saveAndFlush (não save): o ActionQueue do Hibernate ordena todos os INSERTs antes de
+        // todos os UPDATEs no flush, então um save() comum aqui deixaria o INSERT do estado
+        // novo (data_fim = NULL) chegar ao banco ANTES do UPDATE que fecha o estado atual —
+        // as duas linhas ficariam com data_fim NULL ao mesmo tempo. Inofensivo hoje, mas rejeita
+        // toda venda/cancelamento/edição assim que existir o índice único parcial
+        // uk_produto_estado_aberto (produto_id) WHERE data_fim IS NULL, que não pode ser
+        // DEFERRABLE por ser parcial. Forçar o flush aqui fecha o estado atual NO BANCO antes
+        // de abrir o novo, então nunca há duas linhas abertas simultâneas para o mesmo produto.
+        produtoEstadoRepository.saveAndFlush(atual)
+
+        val novo = ProdutoEstado(
+            produto = produto,
+            estoque = estoque,
+            preco = preco,
+            precoCusto = precoCusto,
+            dataInicio = agora
+        )
+        produtoEstadoRepository.save(novo)
+
+        produto.estadoAtual = novo
+        produtoRepository.save(produto)
+        return novo
+    }
+}
