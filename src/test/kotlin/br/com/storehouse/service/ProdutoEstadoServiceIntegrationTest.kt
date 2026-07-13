@@ -151,23 +151,61 @@ class ProdutoEstadoServiceIntegrationTest @Autowired constructor(
     }
 
     /**
-     * Prova da migration 4.5, changeset "estoque-estado-unico-limpeza" — task 4.
+     * Cria as tabelas-escopo de sessão usadas pelas duas provas da migration 4.5 abaixo.
      *
-     * Não dá para recriar o estado sujo (duas linhas abertas para o mesmo produto)
-     * diretamente em `produto`/`produto_estado`: a migration já rodou nesta suíte (via
-     * LiquibaseTestRunner) e `uk_produto_estado_aberto` rejeitaria o segundo INSERT aberto —
-     * exatamente o que o índice existe para impedir. Então esta prova roda a MESMA instrução
-     * SQL do changeset de limpeza contra tabelas-escopo de sessão (`CREATE TEMP TABLE`) que
-     * replicam só as colunas que a limpeza lê (`produto.estado_atual_id`,
-     * `produto_estado.produto_id`, `produto_estado.data_fim`), livres do índice.
+     * Não dá para recriar o estado sujo (duas linhas abertas para o mesmo produto, ou
+     * estado_atual_id NULL com um estado aberto) diretamente em `produto`/`produto_estado`: a
+     * migration já rodou nesta suíte (via LiquibaseTestRunner) e `uk_produto_estado_aberto`
+     * rejeitaria o segundo INSERT aberto — exatamente o que o índice existe para impedir.
+     * Então estas provas rodam as MESMAS instruções SQL do changeset "estoque-estado-unico"
+     * contra tabelas-escopo de sessão (`CREATE TEMP TABLE`) que replicam só as colunas que a
+     * migration lê (`produto.estado_atual_id`, `produto_estado.produto_id`,
+     * `produto_estado.data_fim`, `produto_estado.data_inicio`, usada pelo ORDER BY do
+     * repontamento), livres do índice.
      */
+    private fun criarTabelasScratchMigracao45() {
+        jdbcTemplate.execute("CREATE TEMP TABLE scratch_produto (id uuid primary key, estado_atual_id uuid) ON COMMIT DROP")
+        jdbcTemplate.execute(
+            """
+            CREATE TEMP TABLE scratch_produto_estado (
+                id uuid primary key,
+                produto_id uuid,
+                data_inicio timestamp NOT NULL DEFAULT clock_timestamp(),
+                data_fim timestamp
+            ) ON COMMIT DROP
+            """.trimIndent()
+        )
+    }
+
+    /** Mesmas duas instruções SQL do changeset "estoque-estado-unico" (repontar + limpar). */
+    private fun rodarMigracao45(produtoTabela: String = "scratch_produto", produtoEstadoTabela: String = "scratch_produto_estado") {
+        jdbcTemplate.update(
+            """
+            UPDATE $produtoTabela p
+               SET estado_atual_id = (
+                   SELECT pe.id FROM $produtoEstadoTabela pe
+                    WHERE pe.produto_id = p.id AND pe.data_fim IS NULL
+                    ORDER BY pe.data_inicio DESC
+                    LIMIT 1)
+             WHERE p.estado_atual_id IS NULL
+            """.trimIndent()
+        )
+        jdbcTemplate.update(
+            """
+            UPDATE $produtoEstadoTabela pe
+               SET data_fim = NOW()
+              FROM $produtoTabela p
+             WHERE pe.produto_id = p.id
+               AND pe.data_fim IS NULL
+               AND pe.id <> p.estado_atual_id
+            """.trimIndent()
+        )
+    }
+
     @Test
     @Transactional
     fun `changeset de limpeza da migration 4-5 fecha o estado orfao e preserva o estadoAtual`() {
-        jdbcTemplate.execute("CREATE TEMP TABLE scratch_produto (id uuid primary key, estado_atual_id uuid) ON COMMIT DROP")
-        jdbcTemplate.execute(
-            "CREATE TEMP TABLE scratch_produto_estado (id uuid primary key, produto_id uuid, data_fim timestamp) ON COMMIT DROP"
-        )
+        criarTabelasScratchMigracao45()
 
         val produtoId = UUID.randomUUID()
         val estadoOrfaoId = UUID.randomUUID()
@@ -185,18 +223,7 @@ class ProdutoEstadoServiceIntegrationTest @Autowired constructor(
             estadoAtualId, produtoId
         )
 
-        // Mesma instrução SQL do changeset "estoque-estado-unico-limpeza", só com os nomes de
-        // tabela trocados para as tabelas-escopo desta transação.
-        jdbcTemplate.update(
-            """
-            UPDATE scratch_produto_estado pe
-               SET data_fim = NOW()
-              FROM scratch_produto p
-             WHERE pe.produto_id = p.id
-               AND pe.data_fim IS NULL
-               AND (p.estado_atual_id IS NULL OR pe.id <> p.estado_atual_id)
-            """.trimIndent()
-        )
+        rodarMigracao45()
 
         val orfaoAindaAberto = jdbcTemplate.queryForObject(
             "select data_fim is null from scratch_produto_estado where id = ?",
@@ -208,8 +235,66 @@ class ProdutoEstadoServiceIntegrationTest @Autowired constructor(
             Boolean::class.java,
             estadoAtualId
         )
+        val estadoAtualIdFinal = jdbcTemplate.queryForObject(
+            "select estado_atual_id from scratch_produto where id = ?",
+            UUID::class.java,
+            produtoId
+        )
 
         assertEquals(false, orfaoAindaAberto, "estado orfao deveria ter sido fechado pela limpeza")
         assertEquals(true, atualAindaAberto, "estadoAtual do produto nao deveria ser tocado pela limpeza")
+        assertEquals(estadoAtualId, estadoAtualIdFinal, "estado_atual_id nao deveria mudar quando ja apontava para um estado valido")
+    }
+
+    /**
+     * Achado IMPORTANTE (Fase C): quando `estado_atual_id IS NULL`, a condição antiga da
+     * limpeza (`p.estado_atual_id IS NULL OR pe.id <> p.estado_atual_id`) casava com TODO
+     * estado aberto do produto — inclusive o único que existia — e fechava todos, deixando o
+     * produto com ZERO estados abertos. `aplicarDelta` then lança em qualquer venda/
+     * cancelamento futuro, `ProdutoResponse` reporta 0/0, e o PATCH /estoque cai no self-heal
+     * de `ProdutoEstadoService.definir` (que hoje falha alto em vez de silenciosamente zerar
+     * preço/custo).
+     *
+     * A correção reponta `estado_atual_id` para o estado aberto mais recente ANTES de
+     * limpar, então este produto deve terminar com exatamente UM estado aberto (o mesmo que
+     * já existia) e `estado_atual_id` deve passar a apontar para ele.
+     */
+    @Test
+    @Transactional
+    fun `changeset de migration 4-5 reponta estado_atual_id NULL para o unico estado aberto em vez de fecha-lo`() {
+        criarTabelasScratchMigracao45()
+
+        val produtoId = UUID.randomUUID()
+        val unicoEstadoAbertoId = UUID.randomUUID()
+
+        // Produto orfao: estado_atual_id NULL, mas com UM estado aberto de verdade (não é
+        // lixo de corrida, é o estado legítimo do produto).
+        jdbcTemplate.update("insert into scratch_produto (id, estado_atual_id) values (?, null)", produtoId)
+        jdbcTemplate.update(
+            "insert into scratch_produto_estado (id, produto_id, data_fim) values (?, ?, null)",
+            unicoEstadoAbertoId, produtoId
+        )
+
+        rodarMigracao45()
+
+        val aindaAberto = jdbcTemplate.queryForObject(
+            "select data_fim is null from scratch_produto_estado where id = ?",
+            Boolean::class.java,
+            unicoEstadoAbertoId
+        )
+        val quantidadeAbertos = jdbcTemplate.queryForObject(
+            "select count(*) from scratch_produto_estado where produto_id = ? and data_fim is null",
+            Long::class.java,
+            produtoId
+        )
+        val estadoAtualIdFinal = jdbcTemplate.queryForObject(
+            "select estado_atual_id from scratch_produto where id = ?",
+            UUID::class.java,
+            produtoId
+        )
+
+        assertEquals(true, aindaAberto, "o unico estado aberto do produto orfao nao deveria ter sido fechado")
+        assertEquals(1L, quantidadeAbertos, "o produto deve terminar com exatamente um estado aberto")
+        assertEquals(unicoEstadoAbertoId, estadoAtualIdFinal, "estado_atual_id deveria ter sido repontado para o unico estado aberto")
     }
 }

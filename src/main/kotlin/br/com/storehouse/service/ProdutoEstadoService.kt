@@ -87,8 +87,13 @@ class ProdutoEstadoService(
     }
 
     /**
-     * Define valores absolutos. preco/precoCusto nulos = preservar os atuais.
-     * Usado pela edição de produto e pelo PATCH de estoque.
+     * Define valores absolutos. preco/precoCusto nulos = preservar os atuais (quando já existe
+     * um estado aberto). Usado pela edição de produto (sempre envia preco e precoCusto reais) e
+     * pelo PATCH de estoque (nunca envia preco/precoCusto — só ajusta a quantidade).
+     *
+     * Quando NÃO existe estado aberto, só se auto-cura criando o primeiro estado se preco E
+     * precoCusto foram informados; caso contrário lança EstadoInvalidoException em vez de
+     * inventar zero (ver comentário abaixo).
      */
     @Transactional(propagation = Propagation.MANDATORY)
     fun definir(
@@ -104,12 +109,22 @@ class ProdutoEstadoService(
         val atual = estadoAbertoDe(produto.id)
 
         // Produto legado/órfão sem estadoAtual (a coluna é nullable no banco): não há estado
-        // para preservar nem para fechar, então cria o primeiro em vez de falhar — mesmo
-        // comportamento self-healing que o antigo precisaNovoEstado tinha antes da
-        // centralização. preco/precoCusto ausentes (PATCH de só-estoque) viram zero; quem
-        // chamou fica responsável por completar os valores reais depois (tela de edição).
+        // para preservar nem para fechar. O self-heal só é seguro quando quem chamou trouxe
+        // preço E custo de verdade (tela de edição de produto, atualizarProdutoExistente) —
+        // nesse caso cria o primeiro estado com esses valores. Quando qualquer um dos dois
+        // está ausente (PATCH de só-estoque, ProdutoService.atualizarEstoque, que sempre
+        // chama definir(id, novoEstoque) sem preço/custo), NÃO auto-curar com zero: isso
+        // abriria um estado com preço 0,00 e precoCusto 0,00 silenciosamente — o PDV passaria
+        // a vender o produto de graça e todo relatório de margem leria zero, sem exceção nem
+        // log. Falhar alto aqui em vez disso, dizendo ao operador o que fazer.
         if (atual == null) {
-            return criarInicial(produto, estoque, preco ?: BigDecimal.ZERO, precoCusto ?: BigDecimal.ZERO)
+            if (preco == null || precoCusto == null) {
+                throw EstadoInvalidoException(
+                    "Produto $produtoId não possui estado atual: edite o produto para definir " +
+                        "preço e custo antes de ajustar o estoque"
+                )
+            }
+            return criarInicial(produto, estoque, preco, precoCusto)
         }
 
         val novoPreco = preco ?: atual.preco

@@ -158,8 +158,35 @@ class ProdutoEstadoServiceTest {
         assertNull(p.estadoAtual)
     }
 
+    /**
+     * Achado CRÍTICO (Fase C): sem esta checagem, `definir` com produto sem estadoAtual e sem
+     * preco/precoCusto informados (o caso real de `ProdutoService.atualizarEstoque`, o PATCH
+     * de estoque que a tela de ajuste rápido do frontend chama) auto-curava com
+     * `preco ?: BigDecimal.ZERO` — abrindo um estado novo com preço 0,00 e precoCusto 0,00
+     * silenciosamente. O PDV então vende o produto de graça e todo relatório de margem lê
+     * zero, sem exceção nem log. `definir` agora falha alto nesse caso em vez de zerar preço
+     * e custo.
+     */
     @Test
-    fun `definir com produto sem estadoAtual cria o primeiro estado em vez de falhar`() {
+    fun `definir com produto sem estadoAtual e sem preco nem precoCusto informados lanca EstadoInvalidoException em vez de zerar`() {
+        val p = produto(estoque = null)
+        Mockito.`when`(produtoRepo.findByIdForUpdate(p.id)).thenReturn(p)
+
+        assertThrows(EstadoInvalidoException::class.java) {
+            service.definir(p.id, estoque = 10)
+        }
+
+        // nada foi criado: o produto continua sem estadoAtual
+        assertNull(p.estadoAtual)
+    }
+
+    /**
+     * O caminho de edição de produto (`atualizarProdutoExistente`) sempre envia preco e
+     * precoCusto reais — esse é o caso em que o self-heal continua seguro e deve continuar
+     * funcionando exatamente como antes.
+     */
+    @Test
+    fun `definir com produto sem estadoAtual e com preco e precoCusto informados cria o primeiro estado com esses valores`() {
         val p = produto(estoque = null)
         Mockito.`when`(produtoRepo.findByIdForUpdate(p.id)).thenReturn(p)
 
@@ -170,16 +197,5 @@ class ProdutoEstadoServiceTest {
         assertEquals(BigDecimal("15.00"), estado.preco)
         assertEquals(BigDecimal("7.00"), estado.precoCusto)
         assertNull(estado.dataFim)
-    }
-
-    @Test
-    fun `definir com produto sem estadoAtual e sem preco informado usa zero como padrao`() {
-        val p = produto(estoque = null)
-        Mockito.`when`(produtoRepo.findByIdForUpdate(p.id)).thenReturn(p)
-
-        val estado = service.definir(p.id, estoque = 10)
-
-        assertEquals(BigDecimal.ZERO, estado.preco)
-        assertEquals(BigDecimal.ZERO, estado.precoCusto)
     }
 }
