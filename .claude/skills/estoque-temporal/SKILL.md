@@ -21,7 +21,7 @@ Nunca `estadoAtual.estoque += x` ou `=` in-place. O padrão correto está em
 
 ```bash
 cd ~/Git/pib/storehouse-api
-rg -n -P --glob 'src/main/**/*.kt' '\.estoque\s*(\+=|-=|=)(?!\s*estadoAtual)'
+rg -n -P --glob 'src/main/**/*.kt' '\.estoque\s*(\+=|-=|(?<![=!<>])=(?!=))'
 ```
 
 Saída esperada hoje — exatamente uma linha, a violação conhecida:
