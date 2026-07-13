@@ -170,9 +170,15 @@ class ProdutoEstadoConcorrenciaTest @Autowired constructor(
     /**
      * TESTE 1 — delta concorrente não pode se perder.
      *
-     * Estoque começa em 10. Thread A soma +5, thread B soma -3, ao mesmo tempo. Resultado
-     * final tem que ser 12. Sem o lock, as duas threads leem 10 antes de qualquer uma
-     * escrever, e uma das duas escritas é perdida (o resultado final vira 15 ou 7, nunca 12).
+     * Uma única rodada dispara a corrida no MÁXIMO uma vez: as duas threads têm que se
+     * sobrepor exatamente na janela leitura-então-escrita para o update perdido acontecer, e
+     * isso é uma moeda — medido empiricamente em 1 de 4 execuções. Um teste que só detecta a
+     * ausência do lock 25% das vezes é pior que inútil (falsa confiança), então aqui rodamos
+     * `RODADAS` vezes a corrida (+5, -3) contra o MESMO produto e conferimos o total
+     * acumulado: com o lock, toda rodada é correta e o total bate certinho; sem o lock,
+     * basta UMA rodada perder uma escrita para o total dar errado. 20 rodadas de 2 threads
+     * levam poucos segundos e, na prática, derrubam a taxa de detecção para efetivamente 100%
+     * (provado abaixo rodando a suíte sem o lock).
      */
     @Test
     fun `delta concorrente nao se perde`() {
@@ -188,50 +194,72 @@ class ProdutoEstadoConcorrenciaTest @Autowired constructor(
                 Falha(e)
             }
 
-        val (resultadoA, resultadoB) = dispararConcorrente({ aplicar(5) }, { aplicar(-3) })
+        val rodadas = 20
+        for (rodada in 1..rodadas) {
+            val (resultadoA, resultadoB) = dispararConcorrente({ aplicar(5) }, { aplicar(-3) })
 
-        assertTrue(resultadoA is Sucesso, "thread A (+5) deveria ter sucesso, foi $resultadoA")
-        assertTrue(resultadoB is Sucesso, "thread B (-3) deveria ter sucesso, foi $resultadoB")
+            assertTrue(resultadoA is Sucesso, "rodada $rodada: thread A (+5) deveria ter sucesso, foi $resultadoA")
+            assertTrue(resultadoB is Sucesso, "rodada $rodada: thread B (-3) deveria ter sucesso, foi $resultadoB")
+        }
 
-        assertEquals(12, estoqueAbertoDe(produto.id), "delta concorrente perdido: esperava 10 + 5 - 3 = 12")
+        val esperado = 10 + rodadas * 2
+        assertEquals(
+            esperado,
+            estoqueAbertoDe(produto.id),
+            "delta concorrente perdido em alguma das $rodadas rodadas: esperava 10 + $rodadas*(+5-3) = $esperado"
+        )
     }
 
     /**
      * TESTE 2 — O MAIS IMPORTANTE. Não se pode vender a descoberto.
      *
-     * Estoque = 1. Duas threads tentam `aplicarDelta(-1)` ao mesmo tempo. Exatamente UMA tem
-     * que ter sucesso; a outra tem que receber `EstadoInvalidoException` (estoque
-     * insuficiente). Estoque final tem que ser 0 — nunca -1 (venda a descoberto) e nunca 1
-     * (o que seria update perdido, como se uma das duas operações nunca tivesse acontecido).
+     * Mesmo problema do teste 1: uma corrida disparada uma única vez só pega a janela de
+     * overlap por sorte — medido empiricamente em 2 de 4 execuções sem o lock. Aqui cada
+     * rodada usa um produto FRESCO (estoque = 1) para não acumular estado entre rodadas, e
+     * a asserção (exatamente 1 sucesso, exatamente 1 `EstadoInvalidoException`, estoque final
+     * 0) roda a CADA rodada — a primeira rodada que quebrar (oversell -1 ou update perdido 1)
+     * falha o teste imediatamente, nomeando a rodada.
      */
     @Test
     fun `nao permite vender a descoberto em duas threads simultaneas`() {
-        val produto = produtoPersistido("conc-delta-oversell")
-        emTransacaoNova {
-            produtoEstadoService.criarInicial(produto, estoque = 1, preco = BigDecimal("10.00"), precoCusto = BigDecimal("5.00"))
-        }
-
-        fun aplicar(): ResultadoDelta =
+        fun aplicar(produtoId: UUID): ResultadoDelta =
             try {
-                Sucesso(emTransacaoNova { produtoEstadoService.aplicarDelta(produto.id, -1) }.estoque)
+                Sucesso(emTransacaoNova { produtoEstadoService.aplicarDelta(produtoId, -1) }.estoque)
             } catch (e: Throwable) {
                 Falha(e)
             }
 
-        val (resultadoA, resultadoB) = dispararConcorrente({ aplicar() }, { aplicar() })
-        val resultados = listOf(resultadoA, resultadoB)
+        val rodadas = 20
+        for (rodada in 1..rodadas) {
+            val produto = produtoPersistido("conc-oversell-$rodada")
+            emTransacaoNova {
+                produtoEstadoService.criarInicial(produto, estoque = 1, preco = BigDecimal("10.00"), precoCusto = BigDecimal("5.00"))
+            }
 
-        val sucessos = resultados.filterIsInstance<Sucesso>()
-        val falhas = resultados.filterIsInstance<Falha>()
+            val (resultadoA, resultadoB) = dispararConcorrente({ aplicar(produto.id) }, { aplicar(produto.id) })
+            val resultados = listOf(resultadoA, resultadoB)
 
-        assertEquals(1, sucessos.size, "exatamente uma das duas threads deveria ter sucesso: $resultados")
-        assertEquals(1, falhas.size, "exatamente uma das duas threads deveria falhar: $resultados")
-        assertTrue(
-            falhas.single().erro is EstadoInvalidoException,
-            "a falha deveria ser EstadoInvalidoException (estoque insuficiente), foi ${falhas.single().erro}"
-        )
+            val sucessos = resultados.filterIsInstance<Sucesso>()
+            val falhas = resultados.filterIsInstance<Falha>()
 
-        assertEquals(0, estoqueAbertoDe(produto.id), "nunca pode sobrar -1 (venda a descoberto) nem 1 (update perdido)")
+            assertEquals(
+                1, sucessos.size,
+                "rodada $rodada: exatamente uma das duas threads deveria ter sucesso: $resultados"
+            )
+            assertEquals(
+                1, falhas.size,
+                "rodada $rodada: exatamente uma das duas threads deveria falhar: $resultados"
+            )
+            assertTrue(
+                falhas.single().erro is EstadoInvalidoException,
+                "rodada $rodada: a falha deveria ser EstadoInvalidoException (estoque insuficiente), foi ${falhas.single().erro}"
+            )
+
+            assertEquals(
+                0, estoqueAbertoDe(produto.id),
+                "rodada $rodada: nunca pode sobrar -1 (venda a descoberto) nem 1 (update perdido)"
+            )
+        }
     }
 
     /**
