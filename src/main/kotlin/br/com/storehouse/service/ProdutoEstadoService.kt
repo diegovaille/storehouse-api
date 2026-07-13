@@ -43,6 +43,9 @@ class ProdutoEstadoService(
         preco: BigDecimal,
         precoCusto: BigDecimal
     ): ProdutoEstado {
+        if (estoque < 0) {
+            throw EstadoInvalidoException("Estoque não pode ser negativo: $estoque")
+        }
         val estado = ProdutoEstado(
             produto = produto,
             estoque = estoque,
@@ -66,6 +69,11 @@ class ProdutoEstadoService(
     fun aplicarDelta(produtoId: UUID, delta: Int): ProdutoEstado {
         val produto = travar(produtoId)
         val atual = estadoAtualDe(produto)
+
+        // Delta zero não muda nada: não abre estado novo idêntico só para registrar um no-op.
+        if (delta == 0) {
+            return atual
+        }
 
         val novoEstoque = atual.estoque + delta
         if (novoEstoque < 0) {
@@ -93,7 +101,16 @@ class ProdutoEstadoService(
             throw EstadoInvalidoException("Estoque não pode ser negativo: $estoque")
         }
         val produto = travar(produtoId)
-        val atual = estadoAtualDe(produto)
+        val atual = produto.estadoAtual
+
+        // Produto legado/órfão sem estadoAtual (a coluna é nullable no banco): não há estado
+        // para preservar nem para fechar, então cria o primeiro em vez de falhar — mesmo
+        // comportamento self-healing que o antigo precisaNovoEstado tinha antes da
+        // centralização. preco/precoCusto ausentes (PATCH de só-estoque) viram zero; quem
+        // chamou fica responsável por completar os valores reais depois (tela de edição).
+        if (atual == null) {
+            return criarInicial(produto, estoque, preco ?: BigDecimal.ZERO, precoCusto ?: BigDecimal.ZERO)
+        }
 
         val novoPreco = preco ?: atual.preco
         val novoPrecoCusto = precoCusto ?: atual.precoCusto
@@ -124,7 +141,15 @@ class ProdutoEstadoService(
     ): ProdutoEstado {
         val agora = LocalDateTime.now()
         atual.dataFim = agora
-        produtoEstadoRepository.save(atual)
+        // saveAndFlush (não save): o ActionQueue do Hibernate ordena todos os INSERTs antes de
+        // todos os UPDATEs no flush, então um save() comum aqui deixaria o INSERT do estado
+        // novo (data_fim = NULL) chegar ao banco ANTES do UPDATE que fecha o estado atual —
+        // as duas linhas ficariam com data_fim NULL ao mesmo tempo. Inofensivo hoje, mas rejeita
+        // toda venda/cancelamento/edição assim que existir o índice único parcial
+        // uk_produto_estado_aberto (produto_id) WHERE data_fim IS NULL, que não pode ser
+        // DEFERRABLE por ser parcial. Forçar o flush aqui fecha o estado atual NO BANCO antes
+        // de abrir o novo, então nunca há duas linhas abertas simultâneas para o mesmo produto.
+        produtoEstadoRepository.saveAndFlush(atual)
 
         val novo = ProdutoEstado(
             produto = produto,

@@ -45,6 +45,18 @@ class VendaService(
         voucherSomenteItemMaisCaro: Boolean = false
     ): VendaResponse {
 
+        // Quantidade não positiva não é um erro de "estoque insuficiente" (que só dispara
+        // dentro de aplicarDelta): quantidade negativa passaria pela checagem de estoque
+        // somando estoque de volta, e ainda assim debitaria/creditaria um valor no total da
+        // venda. Rejeitar aqui, antes de qualquer efeito colateral.
+        request.itens.forEach { item ->
+            if (item.quantidade <= 0) {
+                throw RequisicaoInvalidaException(
+                    "Quantidade inválida para o produto ${item.codigoBarras}: ${item.quantidade}"
+                )
+            }
+        }
+
         val usuario = usuarioRepository.findByEmail(emailUsuario)
             ?: throw EntidadeNaoEncontradaException(ErrorMessages.USUARIO_NAO_ENCONTRADO)
 

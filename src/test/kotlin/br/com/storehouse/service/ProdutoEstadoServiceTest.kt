@@ -138,4 +138,40 @@ class ProdutoEstadoServiceTest {
         assertEquals(10, estado.estoque)
         assertNull(estado.dataFim)
     }
+
+    @Test
+    fun `criarInicial com estoque negativo lanca EstadoInvalidoException`() {
+        val p = produto(estoque = null)
+
+        assertThrows(EstadoInvalidoException::class.java) {
+            service.criarInicial(p, estoque = -1, preco = BigDecimal("15.00"), precoCusto = BigDecimal("7.00"))
+        }
+
+        assertNull(p.estadoAtual)
+    }
+
+    @Test
+    fun `definir com produto sem estadoAtual cria o primeiro estado em vez de falhar`() {
+        val p = produto(estoque = null)
+        Mockito.`when`(produtoRepo.findByIdForUpdate(p.id)).thenReturn(p)
+
+        val estado = service.definir(p.id, estoque = 10, preco = BigDecimal("15.00"), precoCusto = BigDecimal("7.00"))
+
+        assertSame(estado, p.estadoAtual)
+        assertEquals(10, estado.estoque)
+        assertEquals(BigDecimal("15.00"), estado.preco)
+        assertEquals(BigDecimal("7.00"), estado.precoCusto)
+        assertNull(estado.dataFim)
+    }
+
+    @Test
+    fun `definir com produto sem estadoAtual e sem preco informado usa zero como padrao`() {
+        val p = produto(estoque = null)
+        Mockito.`when`(produtoRepo.findByIdForUpdate(p.id)).thenReturn(p)
+
+        val estado = service.definir(p.id, estoque = 10)
+
+        assertEquals(BigDecimal.ZERO, estado.preco)
+        assertEquals(BigDecimal.ZERO, estado.precoCusto)
+    }
 }

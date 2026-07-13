@@ -1,0 +1,42 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!--
+        Garante, a nível de banco, que cada produto tem no máximo um ProdutoEstado aberto
+        (data_fim IS NULL) por vez. Ver skill estoque-temporal e
+        ProdutoEstadoService.transicionar (o saveAndFlush do estado que está sendo fechado
+        depende deste índice para ter efeito prático).
+    -->
+
+    <changeSet id="estoque-estado-unico-limpeza" author="dev">
+        <!--
+            Se a corrida já aconteceu em produção antes deste índice existir, algum produto
+            pode ter mais de um ProdutoEstado aberto. Fechar (data_fim = NOW()) todo estado
+            aberto que NÃO seja o estado_atual_id do produto: estadoAtual sempre foi a fonte
+            da verdade, os demais são lixo de corrida. Precisa rodar ANTES do changeset do
+            índice, senão o índice falha ao criar em cima de dados já inconsistentes.
+        -->
+        <sql>
+            UPDATE produto_estado pe
+               SET data_fim = NOW()
+              FROM produto p
+             WHERE pe.produto_id = p.id
+               AND pe.data_fim IS NULL
+               AND (p.estado_atual_id IS NULL OR pe.id &lt;&gt; p.estado_atual_id);
+        </sql>
+    </changeSet>
+
+    <changeSet id="estoque-estado-unico-indice" author="dev">
+        <!-- createIndex não expressa índice parcial (WHERE); precisa ser <sql> puro. -->
+        <sql>
+            CREATE UNIQUE INDEX uk_produto_estado_aberto
+                ON produto_estado (produto_id) WHERE data_fim IS NULL;
+        </sql>
+        <rollback>
+            DROP INDEX IF EXISTS uk_produto_estado_aberto;
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

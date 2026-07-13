@@ -30,4 +30,5 @@
     <include file="db/changelog/db.changelog-4.2-venda-item-variante.xml"/>
     <include file="db/changelog/db.changelog-4.3-solicitacoes.xml"/>
     <include file="db/changelog/db.changelog-4.4-solicitacao-interna.xml"/>
+    <include file="db/changelog/db.changelog-4.5-estoque-estado-unico.xml"/>
 </databaseChangeLog>
