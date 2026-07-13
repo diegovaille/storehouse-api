@@ -32,7 +32,7 @@ class SolicitacaoInternaService(
             ?: throw EntidadeNaoEncontradaException("Filial não encontrada")
 
         val produto = req.produtoId?.let { id ->
-            produtoRepository.findByIdOrNull(UUID.fromString(id))
+            produtoRepository.findByIdOrNull(parseUuid(id))
                 ?.takeIf { it.filial.id == filialId }
                 ?: throw EntidadeNaoEncontradaException("Produto $id não encontrado na filial")
         }
@@ -67,15 +67,30 @@ class SolicitacaoInternaService(
         id: String,
         req: SolicitacaoInternaUpdateRequest
     ): SolicitacaoInternaResponse {
-        val solicitacao = repo.findByIdOrNull(UUID.fromString(id))
+        val solicitacao = repo.findByIdOrNull(parseUuid(id))
             ?: throw EntidadeNaoEncontradaException("Solicitação interna $id não encontrada")
         if (solicitacao.filial.id != filialId) {
             throw EntidadeNaoEncontradaException("Solicitação interna $id não pertence à filial")
         }
 
+        // Gate de máquina de estados: nenhuma mudança escapa daqui sem passar pela regra de
+        // transição abaixo — nem status, nem produtoId. É o que impede reabrir uma solicitação
+        // já RECEBIDA (double-increment de estoque) ou já CANCELADA.
+        val statusAtual = solicitacao.status
+        if (isTerminal(statusAtual) && (req.status != null || req.produtoId != null)) {
+            throw RequisicaoInvalidaException(
+                "Solicitação $id já está em estado terminal ($statusAtual) — não pode mais ser alterada"
+            )
+        }
+        if (req.status != null && !transicaoPermitida(statusAtual, req.status)) {
+            throw RequisicaoInvalidaException(
+                "Transição de status $statusAtual para ${req.status} não é permitida"
+            )
+        }
+
         // vincular produto (pode vir junto com o RECEBIDO ou antes dele)
         req.produtoId?.let { pid ->
-            solicitacao.produto = produtoRepository.findByIdOrNull(UUID.fromString(pid))
+            solicitacao.produto = produtoRepository.findByIdOrNull(parseUuid(pid))
                 ?.takeIf { it.filial.id == filialId }
                 ?: throw EntidadeNaoEncontradaException("Produto $pid não encontrado na filial")
         }
@@ -89,6 +104,36 @@ class SolicitacaoInternaService(
         solicitacao.dataAtualizacao = LocalDateTime.now()
         return repo.save(solicitacao).toResponse()
     }
+
+    private fun isTerminal(status: StatusSolicitacaoInterna): Boolean =
+        status == StatusSolicitacaoInterna.RECEBIDO || status == StatusSolicitacaoInterna.CANCELADO
+
+    /**
+     * Máquina de estados de SolicitacaoInterna. Único lugar que decide quais transições de
+     * status são válidas — nada disso pode ser decidido de novo em outro canto do código.
+     *
+     * SOLICITADO -> COMPRADO | RECEBIDO | CANCELADO
+     * COMPRADO   -> RECEBIDO | CANCELADO
+     * RECEBIDO, CANCELADO são terminais: nenhuma transição sai deles.
+     * Qualquer outra combinação (incluindo regressões como COMPRADO -> SOLICITADO) é rejeitada.
+     */
+    private fun transicaoPermitida(atual: StatusSolicitacaoInterna, novo: StatusSolicitacaoInterna): Boolean =
+        when (atual) {
+            StatusSolicitacaoInterna.SOLICITADO -> novo == StatusSolicitacaoInterna.COMPRADO ||
+                novo == StatusSolicitacaoInterna.RECEBIDO ||
+                novo == StatusSolicitacaoInterna.CANCELADO
+            StatusSolicitacaoInterna.COMPRADO -> novo == StatusSolicitacaoInterna.RECEBIDO ||
+                novo == StatusSolicitacaoInterna.CANCELADO
+            StatusSolicitacaoInterna.RECEBIDO, StatusSolicitacaoInterna.CANCELADO -> false
+        }
+
+    /** UUID malformado vindo do cliente é requisição inválida (4xx), não erro de servidor (500). */
+    private fun parseUuid(valor: String): UUID =
+        try {
+            UUID.fromString(valor)
+        } catch (e: IllegalArgumentException) {
+            throw RequisicaoInvalidaException("Identificador inválido: $valor")
+        }
 
     /**
      * Somar estoque é a única regra de negócio de verdade aqui.
