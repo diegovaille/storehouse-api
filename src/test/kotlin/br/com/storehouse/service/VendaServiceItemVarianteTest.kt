@@ -61,6 +61,9 @@ class VendaServiceItemVarianteTest {
         Mockito.`when`(produto.id).thenReturn(produtoId)
         Mockito.`when`(produtoRepo.findByIdForUpdate(produtoId)).thenReturn(produto)
         Mockito.`when`(produtoRepo.findByCodigoBarrasAndFilialIdAndExcluidoFalse("789", filialId)).thenReturn(produto)
+        // ProdutoEstadoService le o estado aberto via query direta (findByProdutoIdAndDataFimIsNull),
+        // nao mais via produto.estadoAtual — ver comentario de estadoAbertoDe em ProdutoEstadoService.
+        Mockito.`when`(produtoEstadoRepo.findByProdutoIdAndDataFimIsNull(produtoId)).thenReturn(estado)
 
         val request = VendaRequest(
             voucher = false,
@@ -98,6 +101,12 @@ class VendaServiceItemVarianteTest {
             precoCusto = BigDecimal(precoCusto),
             dataInicio = LocalDateTime.now()
         )
+        // ProdutoEstadoService le o estado aberto via query direta (findByProdutoIdAndDataFimIsNull),
+        // nao mais via produto.estadoAtual. Usa thenAnswer (nao thenReturn) para ler o valor
+        // ATUAL do campo a cada chamada — é isso que faz o segundo aplicarDelta, na prova de
+        // "dois itens do mesmo produto", enxergar o estoque já reduzido pelo primeiro.
+        Mockito.`when`(produtoEstadoRepo.findByProdutoIdAndDataFimIsNull(produto.id))
+            .thenAnswer { produto.estadoAtual }
         return produto
     }
 

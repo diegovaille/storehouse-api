@@ -67,6 +67,9 @@ class VendaServiceVoucherTest {
         Mockito.`when`(produto.id).thenReturn(produtoId)
         Mockito.`when`(produtoRepo.findByIdForUpdate(produtoId)).thenReturn(produto)
         Mockito.`when`(produtoRepo.findByCodigoBarrasAndFilialIdAndExcluidoFalse("123", filialId)).thenReturn(produto)
+        // ProdutoEstadoService le o estado aberto via query direta (findByProdutoIdAndDataFimIsNull),
+        // nao mais via produto.estadoAtual — ver comentario de estadoAbertoDe em ProdutoEstadoService.
+        Mockito.`when`(produtoEstadoRepo.findByProdutoIdAndDataFimIsNull(produtoId)).thenReturn(estadoAtual)
 
         val request = VendaRequest(
             voucher = true,
@@ -99,6 +102,7 @@ class VendaServiceVoucherTest {
         Mockito.`when`(produtoRepo.findByIdForUpdate(produtoId)).thenReturn(produto)
         Mockito.`when`(produtoRepo.findByCodigoBarrasAndFilialIdAndExcluidoFalse(barras, filialId))
             .thenReturn(produto)
+        Mockito.`when`(produtoEstadoRepo.findByProdutoIdAndDataFimIsNull(produtoId)).thenReturn(estado)
         return produto
     }
 

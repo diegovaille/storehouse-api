@@ -54,6 +54,9 @@ class SolicitacaoInternaServiceTest {
         Mockito.`when`(produto.nome).thenReturn("Camiseta")
         // aplicarDelta trava a linha do produto via findByIdForUpdate antes de ler/mudar o estado
         Mockito.`when`(produtoRepo.findByIdForUpdate(produtoId)).thenReturn(produto)
+        // ProdutoEstadoService le o estado aberto via query direta (findByProdutoIdAndDataFimIsNull),
+        // nao mais via produto.estadoAtual — ver comentario de estadoAbertoDe em ProdutoEstadoService.
+        Mockito.`when`(produtoEstadoRepo.findByProdutoIdAndDataFimIsNull(produtoId)).thenReturn(estado)
         return produto
     }
 

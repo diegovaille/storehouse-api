@@ -41,13 +41,21 @@ class ProdutoEstadoServiceTest {
             tipo = TipoProduto(),
             filial = filial()
         )
+        // service não lê mais `produto.estadoAtual` diretamente para descobrir o estado
+        // aberto (ver comentário de `estadoAbertoDe` em ProdutoEstadoService) — ele consulta
+        // produtoEstadoRepository.findByProdutoIdAndDataFimIsNull. O mock precisa refletir
+        // isso, senão todo teste que dependia do estado aberto vê `null`.
         if (estoque != null) {
-            p.estadoAtual = ProdutoEstado(
+            val estado = ProdutoEstado(
                 produto = p,
                 estoque = estoque,
                 preco = BigDecimal(preco),
                 precoCusto = BigDecimal(precoCusto)
             )
+            p.estadoAtual = estado
+            Mockito.`when`(produtoEstadoRepo.findByProdutoIdAndDataFimIsNull(p.id)).thenReturn(estado)
+        } else {
+            Mockito.`when`(produtoEstadoRepo.findByProdutoIdAndDataFimIsNull(p.id)).thenReturn(null)
         }
         return p
     }

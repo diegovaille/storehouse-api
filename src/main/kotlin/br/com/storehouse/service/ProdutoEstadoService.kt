@@ -101,7 +101,7 @@ class ProdutoEstadoService(
             throw EstadoInvalidoException("Estoque não pode ser negativo: $estoque")
         }
         val produto = travar(produtoId)
-        val atual = produto.estadoAtual
+        val atual = estadoAbertoDe(produto.id)
 
         // Produto legado/órfão sem estadoAtual (a coluna é nullable no banco): não há estado
         // para preservar nem para fechar, então cria o primeiro em vez de falhar — mesmo
@@ -127,8 +127,26 @@ class ProdutoEstadoService(
         produtoRepository.findByIdForUpdate(produtoId)
             ?: throw EntidadeNaoEncontradaException("Produto $produtoId não encontrado")
 
+    /**
+     * Lê o estado aberto (`data_fim IS NULL`) do produto por uma query DIRETA em
+     * `produto_estado`, em vez de confiar em `produto.estadoAtual`.
+     *
+     * NÃO é a mesma coisa, sob concorrência: quando o `Produto` já foi carregado ANTES do
+     * lock (ex.: `VendaService.registrarVenda` resolve os produtos pelo código de barras,
+     * sem lock, antes de chamar `aplicarDelta`), esse objeto já está no mapa de identidade
+     * da sessão do Hibernate — e uma query subsequente por ID (como `findByIdForUpdate`,
+     * usada só para ADQUIRIR o lock) não sobrescreve os campos/associações de uma entidade
+     * JÁ gerenciada. Ler `produto.estadoAtual` depois do lock devolveria o estado de ANTES
+     * do lock, não o estado atual de verdade — inclusive um estado que outra transação já
+     * fechou e substituiu enquanto esta esperava o lock. Buscar por
+     * `produto_id + data_fim IS NULL` sempre bate no banco com um ID que a sessão ainda não
+     * conhece (o estado novo tem sempre um UUID novo), então não tem esse problema.
+     */
+    private fun estadoAbertoDe(produtoId: UUID): ProdutoEstado? =
+        produtoEstadoRepository.findByProdutoIdAndDataFimIsNull(produtoId)
+
     private fun estadoAtualDe(produto: Produto): ProdutoEstado =
-        produto.estadoAtual
+        estadoAbertoDe(produto.id)
             ?: throw EstadoInvalidoException("Produto ${produto.id} não possui estado atual definido")
 
     /** Fecha o estado atual e abre um novo. O único lugar que faz isso. */
