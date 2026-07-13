@@ -1,7 +1,7 @@
 package br.com.storehouse.service
 
 import br.com.storehouse.constants.ErrorMessages
-import br.com.storehouse.data.entities.ProdutoEstado
+import br.com.storehouse.data.entities.Produto
 import br.com.storehouse.data.entities.Venda
 import br.com.storehouse.data.entities.VendaItem
 import br.com.storehouse.data.enums.TipoPagamento
@@ -17,7 +17,6 @@ import br.com.storehouse.data.repository.ProdutoRepository
 import br.com.storehouse.data.repository.UsuarioRepository
 import br.com.storehouse.data.repository.VendaRepository
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
-import br.com.storehouse.exceptions.EstadoInvalidoException
 import br.com.storehouse.exceptions.RequisicaoInvalidaException
 import br.com.storehouse.logging.LogCall
 import org.springframework.data.repository.findByIdOrNull
@@ -34,7 +33,8 @@ class VendaService(
     private val vendaRepo: VendaRepository,
     private val produtoRepo: ProdutoRepository,
     private val usuarioRepository: UsuarioRepository,
-    private val filialRepository: FilialRepository
+    private val filialRepository: FilialRepository,
+    private val produtoEstadoService: ProdutoEstadoService
 ) {
     @LogCall
     @Transactional
@@ -58,40 +58,42 @@ class VendaService(
             voucher = request.voucher
         )
 
-        val vendaItens = request.itens.map { item ->
+        data class ItemResolvido(
+            val indice: Int,
+            val quantidade: Int,
+            val cor: String?,
+            val tamanho: String?,
+            val produto: Produto
+        )
+
+        val itensResolvidos = request.itens.mapIndexed { indice, item ->
             val produto = produtoRepo.findByCodigoBarrasAndFilialIdAndExcluidoFalse(item.codigoBarras, filialId)
                 ?: throw EntidadeNaoEncontradaException("Produto ${item.codigoBarras} não encontrado na filial $filialId")
+            ItemResolvido(indice, item.quantidade, item.cor, item.tamanho, produto)
+        }
 
-            val estadoAtual = produto.estadoAtual
-                ?: throw EstadoInvalidoException("Produto ${item.codigoBarras} não possui estado atual definido")
-
-            if (estadoAtual.estoque < item.quantidade) {
-                throw EstadoInvalidoException("Estoque insuficiente para o produto ${item.codigoBarras}")
+        // Aplica os deltas de estoque sempre na mesma ordem (por produtoId): uma venda com
+        // vários itens trava várias linhas de produto, e duas vendas concorrentes com os
+        // mesmos produtos em ordens diferentes formariam um deadlock. A checagem de estoque
+        // insuficiente não é mais feita aqui — ela vive dentro de aplicarDelta, sob o lock,
+        // o que a torna atômica entre vendas simultâneas do último item.
+        val vendaItensPorIndice = itensResolvidos
+            .sortedBy { it.produto.id }
+            .associate { resolvido ->
+                val novoEstado = produtoEstadoService.aplicarDelta(resolvido.produto.id, -resolvido.quantidade)
+                resolvido.indice to VendaItem(
+                    venda = venda,
+                    produto = resolvido.produto,
+                    quantidade = resolvido.quantidade,
+                    // Voucher será aplicado no TOTAL final, não no preço unitário.
+                    // Preço lido do estado retornado por aplicarDelta (pós-transição, mesmos preços).
+                    precoUnitario = novoEstado.preco,
+                    cor = resolvido.cor,
+                    tamanho = resolvido.tamanho
+                )
             }
 
-            // Finaliza o estado atual
-            estadoAtual.dataFim = LocalDateTime.now()
-
-            val novoEstado = ProdutoEstado(
-                produto = produto,
-                preco = estadoAtual.preco,
-                estoque = estadoAtual.estoque - item.quantidade,
-                dataInicio = LocalDateTime.now(),
-                precoCusto = estadoAtual.precoCusto // Preserva o custo do estado atual
-            )
-
-            produto.estadoAtual = novoEstado // Atualiza referência para o novo estado
-
-            VendaItem(
-                venda = venda,
-                produto = produto,
-                quantidade = item.quantidade,
-                // Voucher será aplicado no TOTAL final, não no preço unitário.
-                precoUnitario = estadoAtual.preco,
-                cor = item.cor,
-                tamanho = item.tamanho
-            )
-        }
+        val vendaItens = itensResolvidos.map { vendaItensPorIndice.getValue(it.indice) }
 
         var total = calcularTotal(vendaItens)
 
@@ -248,15 +250,12 @@ class VendaService(
         // Marca a venda como cancelada
         venda.cancelada = true
 
-        // Atualiza o estoque dos produtos vendidos
-        venda.itens.forEach { item ->
-            val produto = item.produto
-            val estadoAtual = produto.estadoAtual ?: return@forEach
-
-            // Restaura o estoque do produto
-            estadoAtual.estoque += item.quantidade
-            produto.estadoAtual = estadoAtual
-        }
+        // Restaura o estoque dos produtos vendidos, sempre travando na mesma ordem (por
+        // produtoId) pelo mesmo motivo de registrarVenda: evitar deadlock entre operações
+        // concorrentes que travam os mesmos produtos em ordens diferentes.
+        venda.itens
+            .sortedBy { it.produto.id }
+            .forEach { item -> produtoEstadoService.aplicarDelta(item.produto.id, item.quantidade) }
 
         vendaRepo.save(venda)
     }

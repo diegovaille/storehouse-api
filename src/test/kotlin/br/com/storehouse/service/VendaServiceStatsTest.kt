@@ -5,6 +5,7 @@ import br.com.storehouse.data.entities.Usuario
 import br.com.storehouse.data.entities.Venda
 import br.com.storehouse.data.repository.FilialRepository
 import br.com.storehouse.data.entities.VendaPagamento
+import br.com.storehouse.data.repository.ProdutoEstadoRepository
 import br.com.storehouse.data.repository.ProdutoRepository
 import br.com.storehouse.data.repository.UsuarioRepository
 import br.com.storehouse.data.repository.VendaRepository
@@ -25,7 +26,9 @@ class VendaServiceStatsTest {
     private val produtoRepo: ProdutoRepository = Mockito.mock(ProdutoRepository::class.java)
     private val usuarioRepo: UsuarioRepository = Mockito.mock(UsuarioRepository::class.java)
     private val filialRepo: FilialRepository = Mockito.mock(FilialRepository::class.java)
-    private val service = VendaService(vendaRepo, produtoRepo, usuarioRepo, filialRepo)
+    private val produtoEstadoRepo: ProdutoEstadoRepository = Mockito.mock(ProdutoEstadoRepository::class.java)
+    private val produtoEstadoService = ProdutoEstadoService(produtoRepo, produtoEstadoRepo)
+    private val service = VendaService(vendaRepo, produtoRepo, usuarioRepo, filialRepo, produtoEstadoService)
 
     private val filialId: UUID = UUID.randomUUID()
 

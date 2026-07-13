@@ -1,6 +1,5 @@
 package br.com.storehouse.service
 
-import br.com.storehouse.data.entities.ProdutoEstado
 import br.com.storehouse.data.entities.SolicitacaoInterna
 import br.com.storehouse.data.enums.StatusSolicitacaoInterna
 import br.com.storehouse.data.model.SolicitacaoInternaRequest
@@ -10,7 +9,6 @@ import br.com.storehouse.data.repository.FilialRepository
 import br.com.storehouse.data.repository.ProdutoRepository
 import br.com.storehouse.data.repository.SolicitacaoInternaRepository
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
-import br.com.storehouse.exceptions.EstadoInvalidoException
 import br.com.storehouse.exceptions.RequisicaoInvalidaException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -22,7 +20,8 @@ import java.util.*
 class SolicitacaoInternaService(
     private val repo: SolicitacaoInternaRepository,
     private val filialRepository: FilialRepository,
-    private val produtoRepository: ProdutoRepository
+    private val produtoRepository: ProdutoRepository,
+    private val produtoEstadoService: ProdutoEstadoService
 ) {
     @Transactional
     fun criar(filialId: UUID, solicitanteEmail: String, req: SolicitacaoInternaRequest): SolicitacaoInternaResponse {
@@ -152,19 +151,7 @@ class SolicitacaoInternaService(
         val produto = solicitacao.produto
             ?: throw RequisicaoInvalidaException("Vincule um produto antes de receber — sem produto não há onde somar o estoque")
 
-        val estadoAtual = produto.estadoAtual
-            ?: throw EstadoInvalidoException("Produto ${produto.id} não possui estado atual definido")
-
-        estadoAtual.dataFim = LocalDateTime.now()
-
-        val novoEstado = ProdutoEstado(
-            produto = produto,
-            estoque = estadoAtual.estoque + solicitacao.quantidade,
-            preco = estadoAtual.preco,
-            precoCusto = estadoAtual.precoCusto,
-            dataInicio = LocalDateTime.now()
-        )
-        produto.estadoAtual = novoEstado
+        produtoEstadoService.aplicarDelta(produto.id, solicitacao.quantidade)
 
         solicitacao.status = StatusSolicitacaoInterna.RECEBIDO
         solicitacao.dataRecebimento = LocalDateTime.now()

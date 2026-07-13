@@ -9,6 +9,7 @@ import br.com.storehouse.data.model.ItemVendaRequest
 import br.com.storehouse.data.model.PagamentoVendaRequest
 import br.com.storehouse.data.model.VendaRequest
 import br.com.storehouse.data.repository.FilialRepository
+import br.com.storehouse.data.repository.ProdutoEstadoRepository
 import br.com.storehouse.data.repository.ProdutoRepository
 import br.com.storehouse.data.repository.UsuarioRepository
 import br.com.storehouse.data.repository.VendaRepository
@@ -27,8 +28,10 @@ class VendaServiceItemVarianteTest {
     private val produtoRepo: ProdutoRepository = Mockito.mock(ProdutoRepository::class.java)
     private val usuarioRepo: UsuarioRepository = Mockito.mock(UsuarioRepository::class.java)
     private val filialRepo: FilialRepository = Mockito.mock(FilialRepository::class.java)
+    private val produtoEstadoRepo: ProdutoEstadoRepository = Mockito.mock(ProdutoEstadoRepository::class.java)
+    private val produtoEstadoService = ProdutoEstadoService(produtoRepo, produtoEstadoRepo)
 
-    private val service = VendaService(vendaRepo, produtoRepo, usuarioRepo, filialRepo)
+    private val service = VendaService(vendaRepo, produtoRepo, usuarioRepo, filialRepo, produtoEstadoService)
 
     @Test
     fun `registrarVenda grava cor e tamanho do item`() {
@@ -48,6 +51,9 @@ class VendaServiceItemVarianteTest {
             dataInicio = LocalDateTime.now(), precoCusto = BigDecimal("10.00")
         )
         Mockito.`when`(produto.estadoAtual).thenReturn(estado)
+        val produtoId = UUID.randomUUID()
+        Mockito.`when`(produto.id).thenReturn(produtoId)
+        Mockito.`when`(produtoRepo.findByIdForUpdate(produtoId)).thenReturn(produto)
         Mockito.`when`(produtoRepo.findByCodigoBarrasAndFilialIdAndExcluidoFalse("789", filialId)).thenReturn(produto)
 
         val request = VendaRequest(

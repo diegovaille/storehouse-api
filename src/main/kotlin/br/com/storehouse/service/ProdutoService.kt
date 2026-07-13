@@ -3,7 +3,6 @@ package br.com.storehouse.service
 import br.com.storehouse.constants.ErrorMessages
 import br.com.storehouse.data.entities.Filial
 import br.com.storehouse.data.entities.Produto
-import br.com.storehouse.data.entities.ProdutoEstado
 import br.com.storehouse.data.entities.TipoProduto
 import br.com.storehouse.data.model.ProdutoDto
 import br.com.storehouse.data.repository.*
@@ -16,17 +15,16 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
 import java.util.*
 
 @Service
 class ProdutoService(
     private val produtoRepository: ProdutoRepository,
     private val tipoProdutoRepository: TipoProdutoRepository,
-    private val produtoEstadoRepository: ProdutoEstadoRepository,
     private val produtoDescricaoRepository: ProdutoDescricaoRepository,
     private val filialRepository: FilialRepository,
-    private val storageService: StorageService
+    private val storageService: StorageService,
+    private val produtoEstadoService: ProdutoEstadoService
 ) {
     private val objectMapper = jacksonObjectMapper()
     private val logger = LoggerFactory.getLogger(ProdutoService::class.java)
@@ -83,25 +81,15 @@ class ProdutoService(
 
         val salvo = produtoRepository.save(produto)
 
-        val estado = ProdutoEstado(
-            produto = salvo,
-            estoque = dto.estoque,
-            preco = dto.preco,
-            precoCusto = dto.precoCusto,
-        )
-
-        produtoEstadoRepository.save(estado)
-
-        salvo.estadoAtual = estado
-        val atualizado = produtoRepository.save(salvo)
+        produtoEstadoService.criarInicial(salvo, dto.estoque, dto.preco, dto.precoCusto)
 
         dto.descricaoCampos?.let {
-            val descricao = br.com.storehouse.data.entities.ProdutoDescricao(produto = atualizado, descricaoCampos = it)
+            val descricao = br.com.storehouse.data.entities.ProdutoDescricao(produto = salvo, descricaoCampos = it)
             produtoDescricaoRepository.save(descricao)
         }
 
-        logger.info("Novo produto cadastrado: ${atualizado.codigoBarras} - Filial: ${filial.id}")
-        return atualizado
+        logger.info("Novo produto cadastrado: ${salvo.codigoBarras} - Filial: ${filial.id}")
+        return salvo
     }
 
     private fun atualizarProdutoExistente(
@@ -117,21 +105,7 @@ class ProdutoService(
         if (imagemUrl != null) produto.imagemUrl = imagemUrl
         produto.excluido = false
 
-        if (precisaNovoEstado(produto.estadoAtual, dto)) {
-            produto.estadoAtual?.let {
-                it.dataFim = LocalDateTime.now()
-                produtoEstadoRepository.save(it)
-            }
-
-            val novoEstado = ProdutoEstado(
-                produto = produto,
-                estoque = dto.estoque,
-                preco = dto.preco,
-                precoCusto = dto.precoCusto
-            )
-            produtoEstadoRepository.save(novoEstado)
-            produto.estadoAtual = novoEstado
-        }
+        produtoEstadoService.definir(produto.id, dto.estoque, dto.preco, dto.precoCusto)
 
         val atualizado = produtoRepository.save(produto)
 
@@ -147,12 +121,6 @@ class ProdutoService(
 
         logger.info("Produto atualizado: ${produto.codigoBarras} - Filial: ${produto.filial.id}")
         return atualizado
-    }
-
-    private fun precisaNovoEstado(estadoAtual: ProdutoEstado?, dto: ProdutoDto): Boolean {
-        return estadoAtual == null ||
-                estadoAtual.estoque != dto.estoque ||
-                estadoAtual.preco != dto.preco || estadoAtual.precoCusto != dto.precoCusto
     }
 
     private fun validarProduto(dto: ProdutoDto, tipoProduto: TipoProduto) {
@@ -187,23 +155,7 @@ class ProdutoService(
     @Transactional
     fun atualizarEstoque(filialId: UUID, codigo: String, novoEstoque: Int) {
         val produto = buscarProdutoValido(filialId, codigo)
-
-        produto.estadoAtual?.let {
-            if (it.estoque != novoEstoque) {
-                it.dataFim = LocalDateTime.now()
-                produtoEstadoRepository.save(it)
-
-                val novoEstado = ProdutoEstado(
-                    produto = produto,
-                    estoque = novoEstoque,
-                    preco = it.preco,
-                    precoCusto = it.precoCusto
-                )
-                produtoEstadoRepository.save(novoEstado)
-                produto.estadoAtual = novoEstado
-                produtoRepository.save(produto)
-            }
-        }
+        produtoEstadoService.definir(produto.id, novoEstoque)
     }
 
     @LogCall

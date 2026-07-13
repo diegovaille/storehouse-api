@@ -9,6 +9,7 @@ import br.com.storehouse.data.model.ItemVendaRequest
 import br.com.storehouse.data.model.PagamentoVendaRequest
 import br.com.storehouse.data.model.VendaRequest
 import br.com.storehouse.data.repository.FilialRepository
+import br.com.storehouse.data.repository.ProdutoEstadoRepository
 import br.com.storehouse.data.repository.ProdutoRepository
 import br.com.storehouse.data.repository.UsuarioRepository
 import br.com.storehouse.data.repository.VendaRepository
@@ -27,12 +28,15 @@ class VendaServiceVoucherTest {
     private val produtoRepo: ProdutoRepository = Mockito.mock(ProdutoRepository::class.java)
     private val usuarioRepo: UsuarioRepository = Mockito.mock(UsuarioRepository::class.java)
     private val filialRepo: FilialRepository = Mockito.mock(FilialRepository::class.java)
+    private val produtoEstadoRepo: ProdutoEstadoRepository = Mockito.mock(ProdutoEstadoRepository::class.java)
+    private val produtoEstadoService = ProdutoEstadoService(produtoRepo, produtoEstadoRepo)
 
     private val service = VendaService(
         vendaRepo = vendaRepo,
         produtoRepo = produtoRepo,
         usuarioRepository = usuarioRepo,
-        filialRepository = filialRepo
+        filialRepository = filialRepo,
+        produtoEstadoService = produtoEstadoService
     )
 
     @Test
@@ -59,6 +63,9 @@ class VendaServiceVoucherTest {
             precoCusto = BigDecimal("1.00")
         )
         Mockito.`when`(produto.estadoAtual).thenReturn(estadoAtual)
+        val produtoId = UUID.randomUUID()
+        Mockito.`when`(produto.id).thenReturn(produtoId)
+        Mockito.`when`(produtoRepo.findByIdForUpdate(produtoId)).thenReturn(produto)
         Mockito.`when`(produtoRepo.findByCodigoBarrasAndFilialIdAndExcluidoFalse("123", filialId)).thenReturn(produto)
 
         val request = VendaRequest(
@@ -87,6 +94,9 @@ class VendaServiceVoucherTest {
             precoCusto = BigDecimal("1.00")
         )
         Mockito.`when`(produto.estadoAtual).thenReturn(estado)
+        val produtoId = UUID.randomUUID()
+        Mockito.`when`(produto.id).thenReturn(produtoId)
+        Mockito.`when`(produtoRepo.findByIdForUpdate(produtoId)).thenReturn(produto)
         Mockito.`when`(produtoRepo.findByCodigoBarrasAndFilialIdAndExcluidoFalse(barras, filialId))
             .thenReturn(produto)
         return produto

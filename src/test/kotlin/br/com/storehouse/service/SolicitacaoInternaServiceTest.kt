@@ -9,6 +9,7 @@ import br.com.storehouse.data.enums.StatusSolicitacaoInterna
 import br.com.storehouse.data.model.SolicitacaoInternaRequest
 import br.com.storehouse.data.model.SolicitacaoInternaUpdateRequest
 import br.com.storehouse.data.repository.FilialRepository
+import br.com.storehouse.data.repository.ProdutoEstadoRepository
 import br.com.storehouse.data.repository.ProdutoRepository
 import br.com.storehouse.data.repository.SolicitacaoInternaRepository
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
@@ -30,7 +31,9 @@ class SolicitacaoInternaServiceTest {
     }
     private val filialRepo: FilialRepository = Mockito.mock(FilialRepository::class.java)
     private val produtoRepo: ProdutoRepository = Mockito.mock(ProdutoRepository::class.java)
-    private val service = SolicitacaoInternaService(repo, filialRepo, produtoRepo)
+    private val produtoEstadoRepo: ProdutoEstadoRepository = Mockito.mock(ProdutoEstadoRepository::class.java)
+    private val produtoEstadoService = ProdutoEstadoService(produtoRepo, produtoEstadoRepo)
+    private val service = SolicitacaoInternaService(repo, filialRepo, produtoRepo, produtoEstadoService)
 
     private val filialId = UUID.randomUUID()
     private val outraFilialId = UUID.randomUUID()
@@ -45,9 +48,12 @@ class SolicitacaoInternaServiceTest {
             preco = BigDecimal("10.00"),
             precoCusto = BigDecimal("5.00")
         )
+        val produtoId = UUID.randomUUID()
         Mockito.`when`(produto.estadoAtual).thenReturn(estado)
-        Mockito.`when`(produto.id).thenReturn(UUID.randomUUID())
+        Mockito.`when`(produto.id).thenReturn(produtoId)
         Mockito.`when`(produto.nome).thenReturn("Camiseta")
+        // aplicarDelta trava a linha do produto via findByIdForUpdate antes de ler/mudar o estado
+        Mockito.`when`(produtoRepo.findByIdForUpdate(produtoId)).thenReturn(produto)
         return produto
     }
 
