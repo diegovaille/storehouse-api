@@ -78,4 +78,19 @@ corrigir se a tarefa pedir explicitamente.
 
 - **`SolicitacaoController`** — nenhum método tem guard de role, apesar de o
   commit que o introduziu (`feat(solicitacoes)`) descrever os endpoints como
-  admin-only.
+  admin-only. (O `SolicitacaoInternaController`, mais novo, tem.)
+- **Seed cadastra o usuário `vendedor` com perfil ADMIN.**
+  `db.changelog-1.6-dados-iniciais.xml`. Quem testar autorização com esse
+  usuário vai concluir, errado, que os guards de role não funcionam.
+
+## Intenções de produto ainda não implementadas — não "consertar"
+
+- **`GET /api/produtos` é público (`SecurityConfig`) e estoura 500 sem token.**
+  Não é descuido: a rota foi aberta de propósito, para membros da igreja verem
+  o catálogo **sem credencial**. Mas o `ProdutoController` exige
+  `@AuthenticationPrincipal` para saber a filial, e o Kotlin estoura no nulo.
+  **Não feche a rota para "corrigir o 500"** — isso apaga a intenção sem
+  substituí-la. E não tolere o principal nulo no endpoint atual: ele devolve
+  `precoCusto` e estoque exato, que são dados de operação, não de vitrine.
+  O caminho é um endpoint separado, com DTO próprio e filial explícita.
+  Rastreado em `#17`.
