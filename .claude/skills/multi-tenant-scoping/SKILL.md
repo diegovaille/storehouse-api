@@ -30,8 +30,11 @@ rg -l --glob 'src/main/kotlin/br/com/storehouse/api/controller/*.kt' '@(Post|Put
 rg -n --glob 'src/main/kotlin/br/com/storehouse/data/repository/*.kt' '^\s*fun find' \
   | grep -vE 'Usuario|Perfil|Organizacao' | grep -vE 'FilialId|ProdutoId'
 
-# (c) autoridade que nunca casa
-rg -n --glob 'src/main/**/*.kt' 'hasAuthority'
+# (c) autoridade que nunca casa — só USO real, dentro de @PreAuthorize.
+# Buscar a string solta pegava comentários que EXPLICAM o bug (há um no
+# GlobalExceptionHandler) e fazia a checagem gritar lobo. Uma checagem ruidosa
+# é abandonada, e aí o invariante não vale nada.
+rg -n --glob 'src/main/**/*.kt' '@PreAuthorize\([^)]*hasAuthority'
 ```
 
 Saída esperada hoje: (a), (b) e (c) limpas (sem output).
