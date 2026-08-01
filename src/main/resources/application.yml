@@ -7,3 +7,16 @@ app:
 
 openai:
   api-key: ${OPENAI_API_KEY}
+
+# Rate limiting por IP (RateLimitFilter). Aplica só a /api/publico/** (vitrine pública
+# anônima) e POST /api/auth/login (superfície de força bruta) — toda outra rota é
+# autenticada e não passa por aqui. Ajustar cota é só mudar estes números, sem deploy de
+# código novo. Ver RateLimitFilter para o porquê dos números e das duas armadilhas evitadas
+# (chave por IP real, memória limitada).
+rate-limit:
+  publico:
+    capacity: 60
+    refill-period-seconds: 60
+  login:
+    capacity: 5
+    refill-period-seconds: 60

@@ -3,6 +3,7 @@ package br.com.storehouse.config
 import br.com.storehouse.api.handler.OAuth2SuccessHandler
 import br.com.storehouse.api.security.JwtUtils
 import br.com.storehouse.api.security.filters.JwtAuthenticationFilter
+import br.com.storehouse.api.security.filters.RateLimitFilter
 import br.com.storehouse.service.UsuarioService
 import org.springframework.core.env.Environment
 import org.springframework.context.annotation.Bean
@@ -31,7 +32,8 @@ class SecurityConfig(
     private val jwtUtils: JwtUtils,
     private val usuarioService: UsuarioService,
     private val oauth2SuccessHandler: OAuth2SuccessHandler,
-    private val env: Environment
+    private val env: Environment,
+    private val rateLimitFilter: RateLimitFilter
 ) {
 
     @Bean
@@ -60,6 +62,17 @@ class SecurityConfig(
             .addFilterBefore(
                 JwtAuthenticationFilter(jwtUtils),
                 UsernamePasswordAuthenticationFilter::class.java
+            )
+            // Roda ANTES do JwtAuthenticationFilter: rejeita quem estourou a cota antes até
+            // de gastar ciclos validando token. `permitAll` só decide autorização — os
+            // filtros da cadeia (este incluso) rodam para toda requisição, inclusive as
+            // públicas de /api/publico/** e /api/auth/login. Ver doc de RateLimitFilter para
+            // por que a ordem aqui não afeta a correção do IP usado como chave (o
+            // ForwardedHeaderFilter do Spring Boot já reescreveu request.remoteAddr bem antes
+            // de qualquer filtro desta cadeia rodar).
+            .addFilterBefore(
+                rateLimitFilter,
+                JwtAuthenticationFilter::class.java
             )
             .exceptionHandling {
                 it.authenticationEntryPoint { request, response, authException ->
