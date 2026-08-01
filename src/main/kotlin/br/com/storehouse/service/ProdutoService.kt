@@ -4,7 +4,9 @@ import br.com.storehouse.constants.ErrorMessages
 import br.com.storehouse.data.entities.Filial
 import br.com.storehouse.data.entities.Produto
 import br.com.storehouse.data.entities.TipoProduto
+import br.com.storehouse.data.model.CatalogoPublicoItemResponse
 import br.com.storehouse.data.model.ProdutoDto
+import br.com.storehouse.data.model.toCatalogoPublico
 import br.com.storehouse.data.repository.*
 import br.com.storehouse.exceptions.EntidadeNaoEncontradaException
 import br.com.storehouse.exceptions.RequisicaoInvalidaException
@@ -147,6 +149,19 @@ class ProdutoService(
 
     fun listarTodos(filialId: UUID): List<Produto> =
         produtoRepository.findByFilialIdAndExcluidoFalseOrderByNomeAsc(filialId)
+
+    /**
+     * Vitrine pública (issue #17) — sem autenticação, filial vem explícita na URL do
+     * controller, não do `@AuthenticationPrincipal`.
+     *
+     * Reaproveita o mesmo filtro de `listarTodos` (só não-excluídos). Uma `filialId`
+     * desconhecida não lança: cai naturalmente numa lista vazia, o que é mais amigável para
+     * uma página pública do que expor se o id existe ou não. Produtos sem `estadoAtual` são
+     * descartados por `toCatalogoPublico()` (ver comentário lá).
+     */
+    fun listarVitrine(filialId: UUID): List<CatalogoPublicoItemResponse> =
+        produtoRepository.findByFilialIdAndExcluidoFalseOrderByNomeAsc(filialId)
+            .mapNotNull { it.toCatalogoPublico() }
 
     fun buscarPorCodigo(filialId: UUID, codigo: String): Produto? =
         produtoRepository.findByCodigoBarrasAndFilialIdAndExcluidoFalse(codigo, filialId)

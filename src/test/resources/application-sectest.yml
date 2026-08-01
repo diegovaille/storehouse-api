@@ -1,0 +1,55 @@
+# Perfil só para CatalogoPublicoSecurityTest.
+#
+# Deliberadamente NÃO usa o profile "test": SecurityConfig, DefaultStorageService,
+# ProjectBucketProperties e StorageClientFactory são todos `@Profile("!test")` — sob
+# "test" eles ficam desligados (ver TestStorageService/BeansConfig), e é exatamente
+# SecurityConfig que este teste precisa ver rodando de verdade (a regra do endpoint
+# público/fechado é dele, não de um standalone MockMvc). "sectest" satisfaz "!test" e
+# ativa os mesmos beans de produção, com valores dummy suficientes para eles construírem
+# sem tocar rede de verdade (S3Client e o ClientRegistrationRepository do Google OAuth2
+# não fazem chamada nenhuma na criação, só na primeira requisição real).
+spring:
+  liquibase:
+    enabled: false
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: dummy-client-id
+            client-secret: dummy-client-secret
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - email
+              - profile
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
+            user-name-attribute: email
+
+app:
+  frontend-base-url: http://localhost:8080
+
+project:
+  storage:
+    despesa-bucket: test-bucket
+    default-bucket: test-bucket
+    buckets:
+      - name: test-bucket
+        region: us-east-1
+        provider: aws
+        accessKey: test
+        secretKey: test
+        endpoint: http://localhost:4566
+
+jwt:
+  secret: sectest-secret-key-for-security-filter-chain-tests-only
+  expiration: 3600000
+
+openai:
+  api-key: test-key
+
+isbndb:
+  api-key: test-key
