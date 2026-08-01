@@ -48,7 +48,7 @@ class SecurityConfig(
                     .requestMatchers("/favicon.ico").permitAll()
                     .requestMatchers("/login/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/produtos/tipos").permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/produtos").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/publico/**").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
             }
