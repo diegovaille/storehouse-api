@@ -114,28 +114,59 @@ tem uma prova de integração real dedicada a isso (rodando contra Postgres,
 não mock) que falha com `duplicate key value violates unique constraint
 "uk_produto_estado_aberto"` se `saveAndFlush` virar `save`.
 
-## A regra de ordenação de lock
+## A regra de ordenação de lock — a quarta camada, agora também estrutural
 
 Quando uma transação precisa travar VÁRIOS produtos (ex.: uma venda com
-múltiplos itens), ela tem que travar sempre na MESMA ordem — hoje,
-ordenando por `produtoId` (`sortedBy { it.produto.id }`, em
-`VendaService.registrarVenda` e `VendaService.cancelarVenda`, antes de
-chamar `ProdutoEstadoService.aplicarDelta` por item). Sem isso: duas vendas
-concorrentes que compartilham os mesmos dois produtos, mas os travam em
-ordens OPOSTAS, formam um deadlock clássico — a transação A trava
-produtoX e espera produtoY; a transação B trava produtoY e espera
-produtoX; nenhuma das duas consegue prosseguir. O Postgres detecta esse
-ciclo (por padrão, depois de ~1s) e aborta uma das duas transações com
-"deadlock detected" — não trava o banco para sempre, mas derruba a venda
-de um cliente sem motivo aparente, de um jeito que só aparece sob carga
+múltiplos itens), ela tem que travar sempre na MESMA ordem. Até o PR que
+fechou a issue #15, essa regra era **disciplinar**: um `sortedBy { it.produto.id
+}` escrito à mão em `VendaService.registrarVenda` e `VendaService.cancelarVenda`,
+antes de chamar `ProdutoEstadoService.aplicarDelta` por item — ou seja, morava
+no CHAMADOR, não em quem trava. Era a última das quatro camadas de defesa do
+estoque que ainda dependia de alguém lembrar.
+
+Hoje ela é estrutural, como as outras três: `ProdutoEstadoService.aplicarDeltas`
+recebe um `Map<UUID, Int>` (produtoId → delta) e ordena por dentro antes de
+travar:
+
+```kotlin
+@Transactional(propagation = Propagation.MANDATORY)
+fun aplicarDeltas(deltas: Map<UUID, Int>): List<ProdutoEstado> =
+    deltas.entries.sortedBy { it.key }.map { (produtoId, delta) -> aplicarDelta(produtoId, delta) }
+```
+
+`VendaService.registrarVenda` e `cancelarVenda` não ordenam mais nada — eles
+agregam os deltas por produto (somando quando o mesmo produto aparece em mais
+de um item, ex.: duas linhas com o mesmo código de barras) e chamam
+`aplicarDeltas` uma vez. Quem trava é quem ordena: o próximo escritor que
+precisar travar vários produtos numa transação (uma transferência entre
+filiais, um ajuste em lote, um estorno múltiplo) só precisa montar o mapa de
+deltas e chamar `aplicarDeltas` — não tem como esquecer a ordenação porque
+não existe mais um lugar separado onde ela poderia ser esquecida.
+
+Bônus da agregação: a checagem de estoque insuficiente passa a enxergar o
+efeito CUMULATIVO de itens repetidos do mesmo produto numa única chamada a
+`aplicarDelta` (em vez de duas chamadas sequenciais), e a linha do produto
+trava uma única vez em vez de uma vez por item.
+
+Sem essa ordenação: duas vendas concorrentes que compartilham os mesmos dois
+produtos, mas os travam em ordens OPOSTAS, formam um deadlock clássico — a
+transação A trava produtoX e espera produtoY; a transação B trava produtoY e
+espera produtoX; nenhuma das duas consegue prosseguir. O Postgres detecta
+esse ciclo (por padrão, depois de ~1s) e aborta uma das duas transações com
+"deadlock detected" — não trava o banco para sempre, mas derruba a venda de
+um cliente sem motivo aparente, de um jeito que só aparece sob carga
 concorrente real.
 
-`ProdutoEstadoConcorrenciaTest` prova isso também: duas vendas
-concorrentes com os mesmos dois produtos, em ordem oposta de item na
-requisição, com `assertTimeoutPreemptively` para que um deadlock real falhe
-o teste em vez de pendurar o CI. Removendo o `sortedBy`, o teste falha
-(ou trava) de forma consistente; um teste de deadlock que não falhe sem a
-proteção não prova nada.
+`ProdutoEstadoConcorrenciaTest` prova isso também: duas vendas concorrentes
+com os mesmos dois produtos, em ordem oposta de item na requisição, com
+`assertTimeoutPreemptively` para que um deadlock real falhe o teste em vez
+de pendurar o CI. Removendo o `sortedBy` de DENTRO de `aplicarDeltas` (não
+mais algo que exista no chamador), o teste falha de forma consistente —
+verificado por mutação: tirar o `sortedBy` faz
+`duas vendas concorrentes com produtos em ordem oposta nao dao deadlock`
+falhar (`AssertionFailedError` em `erroB`, porque uma das duas transações
+recebe "deadlock detected" do Postgres). Um teste de deadlock que não falhe
+sem a proteção não prova nada.
 
 ## O que quebra se violar
 

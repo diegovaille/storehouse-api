@@ -84,26 +84,31 @@ class VendaService(
             ItemResolvido(indice, item.quantidade, item.cor, item.tamanho, produto)
         }
 
-        // Aplica os deltas de estoque sempre na mesma ordem (por produtoId): uma venda com
-        // vários itens trava várias linhas de produto, e duas vendas concorrentes com os
-        // mesmos produtos em ordens diferentes formariam um deadlock. A checagem de estoque
-        // insuficiente não é mais feita aqui — ela vive dentro de aplicarDelta, sob o lock,
-        // o que a torna atômica entre vendas simultâneas do último item.
-        val vendaItensPorIndice = itensResolvidos
-            .sortedBy { it.produto.id }
-            .associate { resolvido ->
-                val novoEstado = produtoEstadoService.aplicarDelta(resolvido.produto.id, -resolvido.quantidade)
-                resolvido.indice to VendaItem(
-                    venda = venda,
-                    produto = resolvido.produto,
-                    quantidade = resolvido.quantidade,
-                    // Voucher será aplicado no TOTAL final, não no preço unitário.
-                    // Preço lido do estado retornado por aplicarDelta (pós-transição, mesmos preços).
-                    precoUnitario = novoEstado.preco,
-                    cor = resolvido.cor,
-                    tamanho = resolvido.tamanho
-                )
-            }
+        // Agrega os deltas por produto (soma quando o mesmo produto aparece em mais de um item
+        // — dois itens do mesmo código de barras) e aplica tudo de uma vez via aplicarDeltas:
+        // a checagem de estoque insuficiente enxerga o efeito CUMULATIVO dos itens desse
+        // produto, a linha trava uma única vez em vez de uma vez por item, e a ordenação que
+        // evita deadlock entre vendas concorrentes com os mesmos produtos mora dentro de
+        // aplicarDeltas — não há mais nada para este chamador esquecer.
+        val deltasPorProduto = itensResolvidos
+            .groupBy { it.produto.id }
+            .mapValues { (_, itens) -> -itens.sumOf { it.quantidade } }
+
+        val estadosPorProduto = produtoEstadoService.aplicarDeltas(deltasPorProduto)
+            .associateBy { it.produto.id }
+
+        val vendaItensPorIndice = itensResolvidos.associate { resolvido ->
+            resolvido.indice to VendaItem(
+                venda = venda,
+                produto = resolvido.produto,
+                quantidade = resolvido.quantidade,
+                // Voucher será aplicado no TOTAL final, não no preço unitário.
+                // Preço lido do estado retornado por aplicarDeltas (pós-transição, mesmos preços).
+                precoUnitario = estadosPorProduto.getValue(resolvido.produto.id).preco,
+                cor = resolvido.cor,
+                tamanho = resolvido.tamanho
+            )
+        }
 
         val vendaItens = itensResolvidos.map { vendaItensPorIndice.getValue(it.indice) }
 
@@ -262,12 +267,15 @@ class VendaService(
         // Marca a venda como cancelada
         venda.cancelada = true
 
-        // Restaura o estoque dos produtos vendidos, sempre travando na mesma ordem (por
-        // produtoId) pelo mesmo motivo de registrarVenda: evitar deadlock entre operações
-        // concorrentes que travam os mesmos produtos em ordens diferentes.
-        venda.itens
-            .sortedBy { it.produto.id }
-            .forEach { item -> produtoEstadoService.aplicarDelta(item.produto.id, item.quantidade) }
+        // Restaura o estoque dos produtos vendidos, agregando por produto (soma quando o mesmo
+        // produto aparece em mais de um item) e aplicando tudo via aplicarDeltas — mesmo
+        // motivo de registrarVenda: a ordenação anti-deadlock mora dentro de aplicarDeltas,
+        // não há nada para este chamador lembrar.
+        val deltasPorProduto = venda.itens
+            .groupBy { it.produto.id }
+            .mapValues { (_, itens) -> itens.sumOf { it.quantidade } }
+
+        produtoEstadoService.aplicarDeltas(deltasPorProduto)
 
         vendaRepo.save(venda)
     }
