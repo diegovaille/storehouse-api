@@ -31,9 +31,9 @@ class CatalogoPublicoController(
     fun listar(@PathVariable filialId: UUID): ResponseEntity<List<CatalogoPublicoItemResponse>> {
         val itens = produtoService.listarVitrine(filialId)
 
-        // Única rota anônima do sistema, exposta à internet sem rate limiting (fora de
-        // escopo aqui — ver PR). Um Cache-Control curto reduz a chance de um scraper simples
-        // martelar o banco a cada request; não substitui um rate limiter de verdade.
+        // Única rota anônima do sistema. Rate limiting por IP (60 req/min) é aplicado por
+        // RateLimitFilter, registrado em SecurityConfig — não aqui. Um Cache-Control curto
+        // reduz ainda mais a chance de um scraper martelar o banco a cada request.
         return ResponseEntity.ok()
             .cacheControl(CacheControl.maxAge(60, TimeUnit.SECONDS).cachePublic())
             .body(itens)

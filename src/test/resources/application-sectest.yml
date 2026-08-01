@@ -29,6 +29,23 @@ spring:
             user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
             user-name-attribute: email
 
+# Igual a application-{dev,prod}.yml: ativa o ForwardedHeaderFilter do Spring Boot, que
+# reescreve request.remoteAddr a partir de X-Forwarded-For. RateLimitFilterSecurityTest
+# depende disso para provar a chave por IP real (armadilha 1) através da cadeia real do
+# Spring Security, não de um MockMvc que ignora o filtro.
+server:
+  forward-headers-strategy: framework
+
+# Sem bloco `rate-limit:` aqui de propósito — fica nos defaults de produção (60/60s
+# publico, 10/5min login, ver RateLimitProperties). O RateLimitFilter é um bean singleton
+# e o contexto Spring deste profile ("sectest") é cacheado e REUTILIZADO entre todos os
+# testes de segurança que casam a mesma assinatura de configuração — inclusive
+# CatalogoPublicoControllerSecurityTest, cujas chamadas a /api/publico/** não setam
+# X-Forwarded-For e por isso caem todas no mesmo bucket "default IP". Uma cota baixa aqui
+# (ex.: 3) estoura esse bucket compartilhado e quebra testes de OUTRA classe que nada sabem
+# sobre rate limiting — já aconteceu ao tentar isso, ver histórico do PR. RateLimitFilterSecurityTest
+# em vez disso dispara o 429 batendo a cota REAL (60/10) a partir de um IP sintético
+# próprio, o que também evita qualquer interferência cruzada com o resto da suíte.
 app:
   frontend-base-url: http://localhost:8080
 
