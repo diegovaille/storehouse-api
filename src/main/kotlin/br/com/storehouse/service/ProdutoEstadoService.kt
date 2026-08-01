@@ -87,6 +87,26 @@ class ProdutoEstadoService(
     }
 
     /**
+     * Aplica deltas a vários produtos numa mesma transação. Ordena por produtoId ANTES de
+     * travar — travar sempre na mesma ordem é o que impede deadlock entre duas transações que
+     * disputam os mesmos produtos em ordens diferentes (ex.: duas vendas concorrentes com os
+     * mesmos dois itens, pedidos em ordem oposta).
+     *
+     * Essa é a última das quatro camadas de defesa do estoque a deixar de ser disciplinar: a
+     * regra de ordenação não mora mais no chamador (ver skill estoque-temporal) — quem trava é
+     * quem ordena, então não há nada para o próximo escritor esquecer.
+     *
+     * `deltas` é um Map<UUID, Int>, então naturalmente não tem chave duplicada: se o mesmo
+     * produto aparece mais de uma vez numa operação (ex.: dois itens de venda com o mesmo
+     * código de barras), quem chama deve SOMAR os deltas desse produto antes de montar o mapa.
+     * Isso torna a checagem de estoque insuficiente cumulativa (vê o efeito de ambos os itens
+     * de uma vez) e trava a linha do produto uma única vez em vez de uma vez por item.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun aplicarDeltas(deltas: Map<UUID, Int>): List<ProdutoEstado> =
+        deltas.entries.sortedBy { it.key }.map { (produtoId, delta) -> aplicarDelta(produtoId, delta) }
+
+    /**
      * Define valores absolutos. preco/precoCusto nulos = preservar os atuais (quando já existe
      * um estado aberto). Usado pela edição de produto (sempre envia preco e precoCusto reais) e
      * pelo PATCH de estoque (nunca envia preco/precoCusto — só ajusta a quantidade).
