@@ -18,5 +18,5 @@ rate-limit:
     capacity: 60
     refill-period-seconds: 60
   login:
-    capacity: 10
-    refill-period-seconds: 300
+    capacity: 5
+    refill-period-seconds: 60

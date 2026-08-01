@@ -96,10 +96,10 @@ class RateLimitFilterSecurityTest @Autowired constructor(
         val ip = "203.0.113.30"
         val corpoLoginInvalido = """{"username":"nao-existe-${UUID.randomUUID()}","password":"errada"}"""
 
-        // rate-limit.login.capacity = 10 (default de produção). Credencial errada é esperado
+        // rate-limit.login.capacity = 5 (default de produção). Credencial errada é esperado
         // (401) — o que se testa aqui é o limitador, não a autenticação em si; um 401 conta
         // como uma requisição contra o bucket do mesmo jeito que um 200 contaria.
-        repeat(10) {
+        repeat(5) {
             mockMvc.perform(
                 post("/api/auth/login")
                     .header("X-Forwarded-For", ip)

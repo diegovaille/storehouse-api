@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration
 @ConfigurationProperties(prefix = "rate-limit")
 class RateLimitProperties {
     var publico: Regra = Regra(capacity = 60, refillPeriodSeconds = 60)
-    var login: Regra = Regra(capacity = 10, refillPeriodSeconds = 300)
+    var login: Regra = Regra(capacity = 5, refillPeriodSeconds = 60)
 
     class Regra(
         var capacity: Long = 0,
