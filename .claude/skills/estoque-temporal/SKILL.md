@@ -143,10 +143,12 @@ filiais, um ajuste em lote, um estorno múltiplo) só precisa montar o mapa de
 deltas e chamar `aplicarDeltas` — não tem como esquecer a ordenação porque
 não existe mais um lugar separado onde ela poderia ser esquecida.
 
-Bônus da agregação: a checagem de estoque insuficiente passa a enxergar o
-efeito CUMULATIVO de itens repetidos do mesmo produto numa única chamada a
-`aplicarDelta` (em vez de duas chamadas sequenciais), e a linha do produto
-trava uma única vez em vez de uma vez por item.
+Bônus da agregação: a linha do produto trava uma única vez em vez de uma vez
+por item repetido, e há um ponto único (`aplicarDeltas`) que é dono da ordem.
+(A checagem cumulativa de estoque **já** funcionava com chamadas sequenciais —
+cada `aplicarDelta` faz `saveAndFlush` e relê o estado, então a chamada
+seguinte já enxergava o efeito da anterior. A agregação não conserta isso;
+economiza travas e centraliza a ordenação.)
 
 Sem essa ordenação: duas vendas concorrentes que compartilham os mesmos dois
 produtos, mas os travam em ordens OPOSTAS, formam um deadlock clássico — a
