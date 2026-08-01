@@ -36,7 +36,7 @@ import java.util.UUID
  * (mesma assinatura de configuração), e o `RateLimitFilter` é um bean singleton — uma cota
  * global baixa estouraria também o bucket "IP default" das chamadas daquela classe (que não
  * setam `X-Forwarded-For`), quebrando testes de outra classe que nada sabem sobre rate
- * limiting. Em vez disso, os testes abaixo batem a cota REAL de produção (60 na vitrine, 10
+ * limiting. Em vez disso, os testes abaixo batem a cota REAL de produção (60 na vitrine, 5
  * no login) a partir de um IP sintético só deles — mais devagar, mas sem nenhum risco de
  * interferência cruzada com o resto da suíte.
  */

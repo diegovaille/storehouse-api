@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration
  *
  * Os defaults abaixo são os valores de produção decididos: vitrine pública anônima
  * (`/api/publico` e subrotas, 60 requisições/minuto) e login (`POST /api/auth/login`,
- * superfície de força bruta, 10 requisições/5 minutos).
+ * superfície de força bruta, 5 requisições/minuto).
  */
 @Configuration
 @ConfigurationProperties(prefix = "rate-limit")
