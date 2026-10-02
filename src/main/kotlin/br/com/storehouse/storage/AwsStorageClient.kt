@@ -10,7 +10,8 @@ class AwsStorageClient(
     private val s3Client: S3Client,
     private val bucketName: String,
     private val endpoint: String? = null,
-    private val region: String? = null
+    private val region: String? = null,
+    private val publicBaseUrl: String? = null
 ) : StorageClient {
 
     override fun upload(key: String, content: ByteArray, contentType: String) {
@@ -27,6 +28,11 @@ class AwsStorageClient(
         val safeKey = key.trimStart('/')
         val encodedKey = safeKey.split('/').joinToString("/") {
             URLEncoder.encode(it, StandardCharsets.UTF_8).replace("+", "%20")
+        }
+
+        val publicOrigin = publicBaseUrl?.trim()?.trimEnd('/')
+        if (!publicOrigin.isNullOrBlank()) {
+            return "$publicOrigin/$encodedKey"
         }
 
         val ep = endpoint?.trim()?.trimEnd('/')
