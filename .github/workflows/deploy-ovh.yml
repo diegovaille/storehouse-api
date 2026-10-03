@@ -1,0 +1,14 @@
+name: Deploy backend to OVH (manual)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    uses: diegovaille/deploy-templates/.github/workflows/deploy-ovh.yml@a56174df553d34430285cb7837db7cf6f2fdf1a7
+    with:
+      kind: api
+      site: backend
+      environment: ovh
+    secrets: inherit
