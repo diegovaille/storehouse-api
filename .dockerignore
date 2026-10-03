@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+.oci
+oci
+.gradle
+build
+**/*.pem
+**/*.key

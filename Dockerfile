@@ -1,8 +1,8 @@
 # Build stage
-FROM gradle:8.5-jdk17 AS build
+FROM gradle:8.8-jdk21 AS build
 WORKDIR /app
 COPY --chown=gradle:gradle . /app
-RUN gradle bootJar --no-daemon
+RUN sh ./gradlew bootJar --no-daemon --max-workers=1 -Dorg.gradle.jvmargs=-Xmx768m -Pkotlin.compiler.execution.strategy=in-process
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-jammy

@@ -16,6 +16,8 @@ class ProjectBucketProperties {
         lateinit var region: String
         lateinit var provider: String
         var endpoint: String? = null
+        // Public HTTP origin differs from the authenticated S3 API endpoint on R2.
+        var publicBaseUrl: String? = null
         var secretKey: String? = null
         var accessKey: String? = null
         var userId: String? = null
