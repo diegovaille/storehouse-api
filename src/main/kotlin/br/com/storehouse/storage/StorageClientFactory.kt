@@ -27,6 +27,7 @@ class StorageClientFactory(private val props: ProjectBucketProperties) {
             val client = when (bucket.provider) {
                 "aws" -> buildAwsClient(bucket)
                 "oracle" -> buildOracleClient(bucket)
+                "local" -> LocalStorageClient(java.nio.file.Path.of(requireNotNull(bucket.rootDirectory)), bucket.name)
                 else -> throw IllegalArgumentException("Provider inválido: ${bucket.provider}")
             }
 

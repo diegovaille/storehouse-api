@@ -36,8 +36,10 @@ class DefaultStorageService(private val storageClientFactory: StorageClientFacto
 
     override fun uploadAnexoDespesa(despesaId: UUID, nomeArquivo: String, arquivo: ByteArray, contentType: String): String {
         val client = storageClientFactory.get(despesaBucket)
-        val extensao = nomeArquivo.substringAfterLast('.', "dat")
-        val key = "despesas/$despesaId.$extensao"
+        val extensao = nomeArquivo.substringAfterLast('.', "dat").lowercase()
+            .takeIf { it.matches(Regex("[a-z0-9]{1,10}")) } ?: "dat"
+        // Immutable file keys keep DB snapshots consistent when an attachment is replaced.
+        val key = "despesas/$despesaId/${UUID.randomUUID()}.$extensao"
 
         logger.info("Uploading expense attachment to: bucket=$despesaBucket, key=$key")
         logger.info("File size: ${arquivo.size} bytes")
@@ -46,5 +48,14 @@ class DefaultStorageService(private val storageClientFactory: StorageClientFacto
         client.upload(key = key, contentType = contentType, content = arquivo)
 
         return client.getUrl(key)
+    }
+
+    override fun downloadAnexoDespesa(despesaId: UUID, reference: String): br.com.storehouse.storage.StoredFile {
+        // anexoUrl can be supplied in JSON: never trust a reference to another expense.
+        val prefix = "local://$despesaBucket/despesas/$despesaId/"
+        if (!reference.startsWith(prefix) || reference.removePrefix(prefix).contains('/')) {
+            throw br.com.storehouse.exceptions.EntidadeNaoEncontradaException("Anexo não encontrado")
+        }
+        return storageClientFactory.get(despesaBucket).download(reference)
     }
 }

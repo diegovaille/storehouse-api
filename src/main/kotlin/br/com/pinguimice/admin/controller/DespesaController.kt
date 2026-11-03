@@ -6,6 +6,9 @@ import br.com.pinguimice.admin.service.DespesaService
 import br.com.storehouse.data.model.UsuarioAutenticado
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
+import org.springframework.http.ContentDisposition
+import org.springframework.http.HttpHeaders
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
@@ -16,6 +19,17 @@ import java.util.*
 class DespesaController(
     private val despesaService: DespesaService
 ) {
+
+    @GetMapping("/{id}/anexo")
+    fun baixarAnexo(@PathVariable id: UUID, @AuthenticationPrincipal usuario: UsuarioAutenticado): ResponseEntity<ByteArray> {
+        val file = despesaService.obterAnexo(id, usuario.filialId)
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType(file.contentType))
+            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(file.filename).build().toString())
+            .header(HttpHeaders.CACHE_CONTROL, "no-store")
+            .header("X-Content-Type-Options", "nosniff")
+            .body(file.content)
+    }
 
     @GetMapping
     fun listarDespesas(
