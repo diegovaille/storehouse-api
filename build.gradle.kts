@@ -15,6 +15,8 @@ repositories {
 
 val awsSdkVersion = "2.25.12"
 val ociSdkVersion = "3.67.2"
+// The CI runner uses Docker 29, which no longer accepts the old client API default.
+extra["testcontainers.version"] = "1.21.4"
 
 
 dependencies {
