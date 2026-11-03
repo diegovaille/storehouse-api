@@ -83,7 +83,9 @@ fun Despesa.toResponse() = DespesaResponse(
     valor = this.valor,
     dataVencimento = this.dataVencimento?.toString(),
     dataPagamento = this.dataPagamento?.toString(),
-    anexoUrl = this.anexoUrl,
+    anexoUrl = this.anexoUrl?.let {
+        if (it.startsWith("local://")) "/api/pinguim-admin/despesas/$id/anexo" else it
+    },
     observacao = this.observacao,
     dataCriacao = this.dataCriacao
 )

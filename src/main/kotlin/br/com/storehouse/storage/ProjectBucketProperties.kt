@@ -25,5 +25,6 @@ class ProjectBucketProperties {
         var tenantId: String? = null
         var fingerprint: String? = null
         var privateKey: String? = null
+        var rootDirectory: String? = null
     }
 }

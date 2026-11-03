@@ -105,4 +105,12 @@ class DespesaService(
 
         despesaRepository.delete(despesa)
     }
+
+    @Transactional(readOnly = true)
+    fun obterAnexo(id: UUID, filialId: UUID): br.com.storehouse.storage.StoredFile {
+        val despesa = despesaRepository.findByIdAndFilialId(id, filialId)
+            ?: throw EntidadeNaoEncontradaException("Despesa não encontrada")
+        val reference = despesa.anexoUrl ?: throw EntidadeNaoEncontradaException("Anexo não encontrado")
+        return storageService.downloadAnexoDespesa(despesa.id, reference)
+    }
 }
